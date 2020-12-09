@@ -1,0 +1,26 @@
+BASEDIR = ..
+
+ICON = dosbox.png
+README = ../README
+BUILD = dosbox
+TARGET = dosbox_od.opk
+DEFAULT_DESKTOP = default.gcw0.desktop
+
+all: opk
+
+build:
+	cd $(BASEDIR) && $(MAKE)
+
+opk: build $(BUILD) $(ICON) $(README) $(DEFAULT_DESKTOP)
+	@mksquashfs \
+	$(DEFAULT_DESKTOP) \
+	dosconf.gcw0.desktop \
+	$(README) \
+	$(ICON) \
+	$(BUILD) \
+	$(TARGET) \
+	-all-root -noappend -no-exports -no-xattrs
+
+clean:
+	cd $(BASEDIR) && $(MAKE) clean
+	-rm $(TARGET)

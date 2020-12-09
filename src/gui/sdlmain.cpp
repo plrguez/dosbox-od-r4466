@@ -50,6 +50,8 @@
 #include "cross.h"
 #include "control.h"
 #include "render.h"
+#include "sdl_downscaler.h"
+#include "sdl_vkeyboard.h"
 
 #define MAPPERFILE "mapper-" VERSION ".map"
 //#define DISABLE_JOYSTICK
@@ -209,6 +211,7 @@ struct private_hwdata {
 
 enum SCREEN_TYPES	{
 	SCREEN_SURFACE,
+	SCREEN_SURFACE_DINGUX,
 	SCREEN_SURFACE_DDRAW,
 	SCREEN_OVERLAY,
 	SCREEN_OPENGL
@@ -284,6 +287,7 @@ struct SDL_Block {
 #endif
 	struct {
 		SDL_Surface * surface;
+		SDL_Surface * buffer;
 #if C_DDRAW
 		RECT rect_dest;
 		RECT rect_src;
@@ -586,6 +590,16 @@ check_gotbpp:
 		}
 		flags |= GFX_CAN_RANDOM;
 		break;
+	case SCREEN_SURFACE_DINGUX:
+		switch (sdl.desktop.bpp) {
+		case 0:
+		case 8:
+		case 16: flags = GFX_CAN_16; break;
+		case 24:
+		case 32: flags = GFX_CAN_32; break;
+		}
+		flags |= GFX_SCALING; // this allows SDL_HWSURFACE
+		break;
 #if C_DDRAW
 	case SCREEN_SURFACE_DDRAW:
 		if (!(flags&(GFX_CAN_15|GFX_CAN_16|GFX_CAN_32))) goto check_surface;
@@ -711,6 +725,11 @@ void GFX_TearDown(void) {
 		SDL_FreeSurface(sdl.blit.surface);
 		sdl.blit.surface=0;
 	}
+
+	if (sdl.blit.buffer) {
+		SDL_FreeSurface(sdl.blit.buffer);
+		sdl.blit.buffer=0;
+	}
 }
 
 #if C_OPENGL
@@ -801,6 +820,10 @@ Bitu GFX_SetSize(Bitu width,Bitu height,Bitu flags,double scalex,double scaley,G
 		SDL_FreeSurface(sdl.blit.surface);
 		sdl.blit.surface=0;
 	}
+	if (sdl.blit.buffer) {
+		SDL_FreeSurface(sdl.blit.buffer);
+		sdl.blit.buffer=0;
+	}
 	switch (sdl.desktop.want_type) {
 	case SCREEN_SURFACE:
 dosurface:
@@ -881,6 +904,59 @@ dosurface:
 				/* If this one fails be ready for some flickering... */
 			}
 		}
+		break;
+	case SCREEN_SURFACE_DINGUX:
+		if (flags & GFX_CAN_16) bpp = 16;
+		if (flags & GFX_CAN_32) bpp = 32;
+		sdl.desktop.type = SCREEN_SURFACE_DINGUX;
+
+		sdl.surface=SDL_SetVideoMode(sdl.desktop.full.width,
+									sdl.desktop.full.height,
+									sdl.desktop.bpp,
+									(flags & GFX_CAN_RANDOM) ? SDL_SWSURFACE : SDL_HWSURFACE);
+
+		sdl.blit.buffer=SDL_CreateRGBSurface(SDL_SWSURFACE, // for mixing menu and game screen
+									sdl.desktop.full.width,
+									sdl.desktop.full.height,
+									sdl.desktop.bpp,
+									0,0,0,0);
+
+		GFX_PDownscale = NULL;
+		if(width <= sdl.desktop.full.width && height <= sdl.desktop.full.height) {
+			sdl.clip.w=width;
+			sdl.clip.h=height;
+			sdl.clip.x=(Sint16)((sdl.desktop.full.width-width)/2);
+			sdl.clip.y=(Sint16)((sdl.desktop.full.height-height)/2);
+			sdl.blit.surface=SDL_CreateRGBSurface(SDL_SWSURFACE,width,height,bpp,0,0,0,0);
+		} else {
+			sdl.clip.w=0; sdl.clip.h=0; sdl.clip.x=0; sdl.clip.y=0;
+			sdl.blit.surface=SDL_CreateRGBSurface(SDL_SWSURFACE,width,height,bpp,0,0,0,0);
+
+			if(width == 640 && height == 400)
+				GFX_PDownscale = (bpp == 16 ? &GFX_Downscale_640x400_to_320x240_16 : &GFX_Downscale_640x400_to_320x240_32);
+			else if(width == 640 && height == 480)
+				GFX_PDownscale = (bpp == 16 ? &GFX_Downscale_640x480_to_320x240_16 : &GFX_Downscale_640x480_to_320x240_32);
+		}
+
+		printf("Mode: %ix%ix%i, Surface %ix%ix%i\n",
+					sdl.desktop.full.width,
+					sdl.desktop.full.height,
+					sdl.desktop.bpp,
+					width,height,bpp);
+
+		if (sdl.surface == NULL) E_Exit("Could not set windowed video mode %ix%i-%i: %s",width,height,bpp,SDL_GetError());
+		if (sdl.surface) {
+			switch (sdl.surface->format->BitsPerPixel) {
+			case 16:
+				retFlags = GFX_CAN_16;
+				break;
+			case 32:
+				retFlags = GFX_CAN_32;
+				break;
+			}
+		}
+
+		retFlags |= GFX_SCALING;
 		break;
 #if C_DDRAW
 	case SCREEN_SURFACE_DDRAW:
@@ -1304,6 +1380,19 @@ bool GFX_StartUpdate(Bit8u * & pixels,Bitu & pitch) {
 		}
 		sdl.updating=true;
 		return true;
+	case SCREEN_SURFACE_DINGUX:
+		if (sdl.blit.surface) {
+			pixels=(Bit8u *)sdl.blit.surface->pixels;
+			pitch=sdl.blit.surface->pitch;
+		} else {
+			if (SDL_MUSTLOCK(sdl.surface)) SDL_LockSurface(sdl.surface);
+			pixels=(Bit8u *)sdl.surface->pixels;
+			pixels+=sdl.clip.y*sdl.surface->pitch;
+			pixels+=sdl.clip.x*sdl.surface->format->BytesPerPixel;
+			pitch=sdl.surface->pitch;
+		}
+		sdl.updating=true;
+		return true;
 #if C_DDRAW
 	case SCREEN_SURFACE_DDRAW:
 		if (SDL_LockSurface(sdl.blit.surface)) {
@@ -1386,6 +1475,30 @@ void GFX_EndUpdate( const Bit16u *changedLines ) {
 				SDL_UpdateRects( sdl.surface, rectCount, sdl.updateRects );
 		}
 		break;
+	case SCREEN_SURFACE_DINGUX:
+		if(!vkeyb_active && !vkeyb_last) {
+			if (sdl.blit.surface) {
+				if(GFX_PDownscale) {
+					GFX_PDOWNSCALE(sdl.blit.surface, sdl.surface);
+				} else {
+					SDL_BlitSurface(sdl.blit.surface, 0, sdl.surface, &sdl.clip);
+				}
+ 			} else {
+				if(SDL_MUSTLOCK(sdl.surface)) SDL_UnlockSurface(sdl.surface);
+			}
+		} else {
+			// assume that sdl.blit.surface is set
+			if(GFX_PDownscale) {
+				GFX_PDOWNSCALE(sdl.blit.surface, sdl.blit.buffer);
+			} else {
+				SDL_BlitSurface(sdl.blit.surface, 0, sdl.blit.buffer,  &sdl.clip);
+			}
+			VKEYB_BlitVkeyboard(sdl.blit.buffer);
+			SDL_BlitSurface(sdl.blit.buffer, 0, sdl.surface, 0);
+			VKEYB_CleanVkeyboard(sdl.blit.buffer);
+		}
+		SDL_Flip(sdl.surface);
+		break;
 #if C_DDRAW
 	case SCREEN_SURFACE_DDRAW:
 		SDL_UnlockSurface(sdl.blit.surface);
@@ -1461,6 +1574,13 @@ void GFX_EndUpdate( const Bit16u *changedLines ) {
 	}
 }
 
+void GFX_ForceUpdate()
+{
+	if(sdl.updating == false) {
+		sdl.updating=true;
+		GFX_EndUpdate(NULL);
+	}
+}
 
 void GFX_SetPalette(Bitu start,Bitu count,GFX_PalEntry * entries) {
 	/* I should probably not change the GFX_PalEntry :) */
@@ -1478,6 +1598,7 @@ void GFX_SetPalette(Bitu start,Bitu count,GFX_PalEntry * entries) {
 Bitu GFX_GetRGB(Bit8u red,Bit8u green,Bit8u blue) {
 	switch (sdl.desktop.type) {
 	case SCREEN_SURFACE:
+	case SCREEN_SURFACE_DINGUX:
 	case SCREEN_SURFACE_DDRAW:
 		return SDL_MapRGB(sdl.surface->format,red,green,blue);
 	case SCREEN_OVERLAY:
@@ -1788,6 +1909,8 @@ static void GUI_StartUp(Section * sec) {
 
 	if (output == "surface") {
 		sdl.desktop.want_type=SCREEN_SURFACE;
+	} else if (output == "surface_dingux") {
+		sdl.desktop.want_type=SCREEN_SURFACE_DINGUX;
 #if C_DDRAW
 	} else if (output == "ddraw") {
 		sdl.desktop.want_type=SCREEN_SURFACE_DDRAW;
@@ -1871,6 +1994,8 @@ static void GUI_StartUp(Section * sec) {
 	} /* OPENGL is requested end */
 
 #endif	//OPENGL
+	// avoid splash for surface_dingux as it uses big screen
+	if(sdl.desktop.want_type != SCREEN_SURFACE_DINGUX) {
 	/* Initialize screen for first time */
 	sdl.surface=SDL_SetVideoMode_Wrap(640,400,0,0);
 	if (sdl.surface == NULL) E_Exit("Could not initialize video: %s",SDL_GetError());
@@ -1951,6 +2076,22 @@ static void GUI_StartUp(Section * sec) {
 		SDL_FreeSurface(splash_surf);
 		delete [] tmpbufp;
 
+	}
+	} else { // sdl.desktop.want_type != SCREEN_SURFACE_DINGUX
+		// test which modes are available and fill sdl.desktop data
+		sdl.desktop.bpp = SDL_VideoModeOK(320,240,16,SDL_HWSURFACE); // let SDL choose bpp
+		if(!sdl.desktop.full.fixed) { // i.e. fullresolution=original
+			sdl.desktop.fullscreen = true;
+			sdl.desktop.full.fixed = true;
+			sdl.desktop.full.width = 320;
+			sdl.desktop.full.height = 240;
+		}
+		#ifndef WIN32 // for testing on win
+		sdl.mouse.autoenable = false;
+		sdl.mouse.autolock = true;
+		GFX_CaptureMouse();
+		#endif
+		VKEYB_Init(sdl.desktop.bpp);
 	}
 
 	/* Get some Event handlers */
@@ -2209,6 +2350,11 @@ void GFX_Events() {
 			}
 #endif
 		default:
+			// a hack to implement virtual keyboard
+			if(sdl.desktop.type == SCREEN_SURFACE_DINGUX) {
+				if(!VKEYB_CheckEvent(&event)) break; // else event is modified
+			}
+
 			void MAPPER_CheckEvent(SDL_Event * event);
 			MAPPER_CheckEvent(&event);
 		}
@@ -2274,7 +2420,7 @@ void Config_Add_SDL() {
 	                  "(output=surface does not!)");
 
 	const char* outputs[] = {
-		"surface", "overlay",
+		"surface", "overlay", "surface_dingux",
 #if C_OPENGL
 		"opengl", "openglnb",
 #endif
@@ -2287,7 +2433,7 @@ void Config_Add_SDL() {
 #if C_OPENGL && defined(MACOSX)
 	Pstring = sdl_sec->Add_string("output",Property::Changeable::Always,"opengl");
 #else
-	Pstring = sdl_sec->Add_string("output",Property::Changeable::Always,"surface");
+	Pstring = sdl_sec->Add_string("output",Property::Changeable::Always,"surface_dingux");
 #endif
 	Pstring->Set_help("What video system to use for output.");
 	Pstring->Set_values(outputs);
@@ -2322,7 +2468,7 @@ void Config_Add_SDL() {
 	Pstring = sdl_sec->Add_path("mapperfile",Property::Changeable::Always,MAPPERFILE);
 	Pstring->Set_help("File used to load/save the key/event mappings from. Resetmapper only works with the default value.");
 
-	Pbool = sdl_sec->Add_bool("usescancodes",Property::Changeable::Always,true);
+	Pbool = sdl_sec->Add_bool("usescancodes",Property::Changeable::Always,false);
 	Pbool->Set_help("Avoid usage of symkeys, might not work on all operating systems.");
 }
 

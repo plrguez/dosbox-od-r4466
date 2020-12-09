@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=DosBox-OD
+Comment=DOS emulator of OpenDingux
+Exec=dosbox -exit %f
+Terminal=false
+Type=Application
+MimeType=application/x-dosexec;text/x-msdos-batch;
+StartupNotify=true
+Icon=dosbox
+Categories=emulators;
