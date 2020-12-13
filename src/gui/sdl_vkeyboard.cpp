@@ -114,6 +114,7 @@ struct VKEYB_Block {
 	bool shift;
 	bool lctrl;
 	bool move;
+	int scale;
 };
 
 static VKEYB_Block vkeyb;
@@ -122,8 +123,11 @@ bool vkeyb_active = false; // vkeyb show flag
 bool vkeyb_last = false; // vkeyb delete flag
 static bool vkeyb_bg = true; // background on/off
 
+int GFX_GetScaleSize(); // in sdlmain.cpp
+
 void VKEYB_Init(int bpp)
 {
+	vkeyb.scale = GFX_GetScaleSize();
 	if(!vkeyb.surface) {
 		vkeyb.surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 287, 80, bpp, 0, 0, 0, 0);
 	}

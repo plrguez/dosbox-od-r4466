@@ -251,6 +251,9 @@ struct SDL_Block {
 		struct {
 			Bit16u width, height;
 		} fullwrap;
+		struct {
+			Bit16u width, height;
+		} supported;
 		Bit8u bpp;
 		bool fullscreen;
 		bool lazy_fullscreen;
@@ -910,10 +913,10 @@ dosurface:
 		if (flags & GFX_CAN_32) bpp = 32;
 		sdl.desktop.type = SCREEN_SURFACE_DINGUX;
 
-		sdl.surface=SDL_SetVideoMode(sdl.desktop.full.width,
-									sdl.desktop.full.height,
-									sdl.desktop.bpp,
-									(flags & GFX_CAN_RANDOM) ? SDL_SWSURFACE : SDL_HWSURFACE);
+		sdl.surface=SDL_SetVideoMode_Wrap(sdl.desktop.full.width,
+						  sdl.desktop.full.height,
+						  sdl.desktop.bpp,
+						 (flags & GFX_CAN_RANDOM) ? SDL_SWSURFACE : SDL_HWSURFACE);
 
 		sdl.blit.buffer=SDL_CreateRGBSurface(SDL_SWSURFACE, // for mixing menu and game screen
 									sdl.desktop.full.width,
@@ -932,10 +935,12 @@ dosurface:
 			sdl.clip.w=0; sdl.clip.h=0; sdl.clip.x=0; sdl.clip.y=0;
 			sdl.blit.surface=SDL_CreateRGBSurface(SDL_SWSURFACE,width,height,bpp,0,0,0,0);
 
-			if(width == 640 && height == 400)
+			if (sdl.desktop.supported.height != 640) {
+			    if(width == 640 && height == 400)
 				GFX_PDownscale = (bpp == 16 ? &GFX_Downscale_640x400_to_320x240_16 : &GFX_Downscale_640x400_to_320x240_32);
-			else if(width == 640 && height == 480)
+			    else if(width == 640 && height == 480)
 				GFX_PDownscale = (bpp == 16 ? &GFX_Downscale_640x480_to_320x240_16 : &GFX_Downscale_640x480_to_320x240_32);
+			}
 		}
 
 		printf("Mode: %ix%ix%i, Surface %ix%ix%i\n",
@@ -2079,23 +2084,29 @@ static void GUI_StartUp(Section * sec) {
 	}
 	} else { // sdl.desktop.want_type != SCREEN_SURFACE_DINGUX
 		// test which modes are available and fill sdl.desktop data
-		sdl.desktop.bpp = SDL_VideoModeOK(320,240,16,SDL_HWSURFACE); // let SDL choose bpp
+                SDL_Rect **modes;
+                /* Get available fullscreen/hw modes */
+                modes = SDL_ListModes(NULL, SDL_HWSURFACE);
+		sdl.desktop.supported.width = modes[0]->w;
+		sdl.desktop.supported.height = modes[0]->h;
+                sdl.surface=SDL_SetVideoMode_Wrap(sdl.desktop.supported.width,sdl.desktop.supported.height,16,SDL_HWSURFACE);
+		if (sdl.surface == NULL) E_Exit("Could not initialize video: %s",SDL_GetError());
+		sdl.desktop.bpp=sdl.surface->format->BitsPerPixel;
+		GFX_Stop();
 		if(!sdl.desktop.full.fixed) { // i.e. fullresolution=original
 			sdl.desktop.fullscreen = true;
 			sdl.desktop.full.fixed = true;
-			sdl.desktop.full.width = 320;
-			sdl.desktop.full.height = 240;
+			sdl.desktop.full.width = sdl.desktop.supported.width;
+			sdl.desktop.full.height = sdl.desktop.supported.height;
 		}
-		#ifndef WIN32 // for testing on win
 		sdl.mouse.autoenable = false;
 		sdl.mouse.autolock = true;
 		GFX_CaptureMouse();
-		#endif
 		VKEYB_Init(sdl.desktop.bpp);
 	}
 
 	/* Get some Event handlers */
-	MAPPER_AddHandler(KillSwitch,MK_f9,MMOD1,"shutdown","ShutDown");
+	MAPPER_AddHandler(KillSwitch,MK_kpperiod,MMOD1,"shutdown","ShutDown");
 	MAPPER_AddHandler(CaptureMouse,MK_f10,MMOD1,"capmouse","Cap Mouse");
 	MAPPER_AddHandler(SwitchFullScreen,MK_return,MMOD2,"fullscr","Fullscreen");
 	MAPPER_AddHandler(Restart,MK_home,MMOD1|MMOD2,"restart","Restart");
@@ -2108,6 +2119,13 @@ static void GUI_StartUp(Section * sec) {
 	SDLMod keystate = SDL_GetModState();
 	if(keystate&KMOD_NUM) startup_state_numlock = true;
 	if(keystate&KMOD_CAPS) startup_state_capslock = true;
+
+	printf("Supported mode %ix%i\n",sdl.desktop.supported.width,sdl.desktop.supported.height);
+	printf("Mouse locked %d\n",mouselocked);
+
+	if (GFX_GetScaleSize()>1) {
+
+	}
 }
 
 void Mouse_AutoLock(bool enable) {
@@ -2444,9 +2462,9 @@ void Config_Add_SDL() {
 	Pmulti = sdl_sec->Add_multi("sensitivity",Property::Changeable::Always, ",");
 	Pmulti->Set_help("Mouse sensitivity. The optional second parameter specifies vertical sensitivity (e.g. 100,-50).");
 	Pmulti->SetValue("100");
-	Pint = Pmulti->GetSection()->Add_int("xsens",Property::Changeable::Always,100);
+	Pint = Pmulti->GetSection()->Add_int("xsens",Property::Changeable::Always,50);
 	Pint->SetMinMax(-1000,1000);
-	Pint = Pmulti->GetSection()->Add_int("ysens",Property::Changeable::Always,100);
+	Pint = Pmulti->GetSection()->Add_int("ysens",Property::Changeable::Always,50);
 	Pint->SetMinMax(-1000,1000);
 
 	Pbool = sdl_sec->Add_bool("waitonerror",Property::Changeable::Always, true);
@@ -2945,4 +2963,13 @@ void GFX_GetSize(int &width, int &height, bool &fullscreen) {
 	width = sdl.draw.width;
 	height = sdl.draw.height;
 	fullscreen = sdl.desktop.fullscreen;
+}
+
+void GFX_GetSupportedSize(int &width, int &height) {
+	width = sdl.desktop.supported.width;
+	height = sdl.desktop.supported.height;
+}
+
+int GFX_GetScaleSize( void ) {
+	return sdl.desktop.supported.width / 320;
 }

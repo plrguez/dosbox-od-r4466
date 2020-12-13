@@ -1193,5 +1193,5 @@ void MOUSE_Init(Section* /*sec*/) {
 
 	Mouse_ResetHardware();
 	Mouse_Reset();
-	Mouse_SetSensitivity(50,50,50);
+	Mouse_SetSensitivity(50,50,25);
 }

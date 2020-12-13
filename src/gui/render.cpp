@@ -581,6 +581,29 @@ static void ChangeScaler(bool pressed) {
 	}
 	RENDER_CallBack( GFX_CallBackReset );
 } */
+static void ChangeScalerSize(bool pressed) {
+	if (!pressed)
+		return;
+	render.scale.op = (scalerOperation)((int)render.scale.op+1);
+	if((render.scale.op) >= scalerLast || render.scale.size == 1) {
+		render.scale.op = (scalerOperation)0;
+		if ( GFX_GetScaleSize() > 1 ) {
+		    if(++render.scale.size > 2)
+			render.scale.size = 1;
+		} else {
+		    render.scale.size = 1;
+		}
+	}
+	RENDER_CallBack( GFX_CallBackReset );
+}
+static void ChangeAspectRatio(bool pressed) {
+	if (!pressed)
+		return;
+	render.aspect != render.aspect;
+	RENDER_CallBack( GFX_CallBackReset );
+}
+
+extern int GFX_GetScaleSize( void ); // in sdlmain()
 
 bool RENDER_GetForceUpdate(void) {
 	return render.forceUpdate;
@@ -670,6 +693,9 @@ void RENDER_Init(Section * sec) {
 		section->HandleInputline(std::string("scaler=") + cline);
 	} else if (control->cmdline->FindString("-forcescaler",cline,true)) {
 		section->HandleInputline(std::string("scaler=") + cline + " forced");
+	} else if ( GFX_GetScaleSize() > 1 ) {
+		printf("Scaler set to normat2x");
+		section->HandleInputline(std::string("scaler=normal2x"));
 	}
 	   
 	Prop_multival* prop = section->Get_multival("scaler");
@@ -730,9 +756,13 @@ void RENDER_Init(Section * sec) {
 
 	if(!running) render.updating=true;
 	running = true;
+	
+	printf("Scaler %s\n",scaler.c_str());
 
 	MAPPER_AddHandler(DecreaseFrameSkip,MK_f7,MMOD1,"decfskip","Dec Fskip");
 	MAPPER_AddHandler(IncreaseFrameSkip,MK_f8,MMOD1,"incfskip","Inc Fskip");
+	MAPPER_AddHandler(ChangeScalerSize,MK_escape,MMOD2,"chgsclsz","Chg ScSize");
+        MAPPER_AddHandler(ChangeAspectRatio,MK_escape,MMOD1,"chgaspect","Chg Aspect");
 	GFX_SetTitle(-1,render.frameskip.max,false);
 }
 
