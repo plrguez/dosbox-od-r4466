@@ -18,6 +18,7 @@
 #include <SDL/SDL_image.h>
 #include <SDL/SDL_gfxPrimitives.h>
 #include <SDL/SDL_gfxPrimitives_font.h>
+#include <SDL/SDL_rotozoom.h>
 
 #include "sdl_vkeyboard_font.h"
 #include "sdl_vkeyboard_image.h"
@@ -122,6 +123,45 @@ static VKEYB_Block vkeyb;
 bool vkeyb_active = false; // vkeyb show flag
 bool vkeyb_last = false; // vkeyb delete flag
 static bool vkeyb_bg = true; // background on/off
+
+static SDL_Surface * VKEYB_Scale2x(SDL_Surface * source)
+{
+   if (!source) return source;
+
+    if (source->format->BitsPerPixel == 16) {
+
+	SDL_Surface * destination = SDL_CreateRGBSurface(SDL_SWSURFACE, source->w*2, source->h*2,
+		                                         source->format->BitsPerPixel, 0, 0, 0, 0);
+	SDL_SetColorKey(destination, SDL_SRCCOLORKEY, SDL_MapRGBA(destination->format, 0, 0, 0, 0xFF));
+
+	const uint8_t * src_pixels = (const uint8_t *)source->pixels;
+	uint8_t * dst_pixels = (uint8_t *)destination->pixels;
+
+	const uint16_t *src_line;
+	uint16_t *dst_line1, *dst_line2;
+	int i, j;
+
+	for (i = 0; i < source->h; i++) {
+	    src_line = (const uint16_t*) src_pixels;
+	    dst_line1 = (uint16_t*) dst_pixels;
+	    dst_line2 = (uint16_t*) (dst_pixels + destination->pitch);
+
+	    for (j = 0; j < source->w; j++) {
+		*dst_line1++ = *src_line;
+		*dst_line1++ = *src_line;
+		*dst_line2++ = *src_line;
+		*dst_line2++ = *src_line++;
+	    }
+
+	    src_pixels += source->pitch;
+	    dst_pixels += destination->pitch << 1;
+	}
+	return destination;
+
+    } else {
+	return zoomSurface(source, 2, 2, SMOOTHING_OFF);
+    }
+}
 
 int GFX_GetScaleSize(); // in sdlmain.cpp
 
@@ -336,10 +376,16 @@ void VKEYB_BlitVkeyboard(SDL_Surface *surface)
 		}
 
 	SDL_Rect dest;
-	dest.x = vkeyb.x;
-	dest.y = vkeyb.y;
-
-	SDL_BlitSurface(vkeyb.surface, 0, surface, &dest);
+	dest.x = vkeyb.x*vkeyb.scale;
+	dest.y = vkeyb.y*vkeyb.scale;
+	
+	if (vkeyb.scale>1) {
+	    SDL_Surface * scaled = VKEYB_Scale2x(vkeyb.surface);
+	    SDL_BlitSurface(scaled, 0, surface, &dest);
+	    SDL_FreeSurface(scaled);
+	} else {
+	    SDL_BlitSurface(vkeyb.surface, 0, surface, &dest);
+	}
 }
 
 void VKEYB_CleanVkeyboard(SDL_Surface *surface)
@@ -347,8 +393,8 @@ void VKEYB_CleanVkeyboard(SDL_Surface *surface)
 	SDL_Rect dest;
 	dest.x = vkeyb.x;
 	dest.y = vkeyb.y;
-	dest.w = 287;
-	dest.h = 80;
+	dest.w = 287*vkeyb.scale;
+	dest.h = 80*vkeyb.scale;
 	SDL_FillRect(surface, &dest, 0);
 	vkeyb_last = false;
 }

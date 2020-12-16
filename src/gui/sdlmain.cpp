@@ -2089,7 +2089,7 @@ static void GUI_StartUp(Section * sec) {
                 modes = SDL_ListModes(NULL, SDL_HWSURFACE);
 		sdl.desktop.supported.width = modes[0]->w;
 		sdl.desktop.supported.height = modes[0]->h;
-                sdl.surface=SDL_SetVideoMode_Wrap(sdl.desktop.supported.width,sdl.desktop.supported.height,16,SDL_HWSURFACE);
+                sdl.surface=SDL_SetVideoMode_Wrap(sdl.desktop.supported.width,sdl.desktop.supported.height,16,SDL_FULLSCREEN|SDL_HWSURFACE);
 		if (sdl.surface == NULL) E_Exit("Could not initialize video: %s",SDL_GetError());
 		sdl.desktop.bpp=sdl.surface->format->BitsPerPixel;
 		GFX_Stop();
@@ -2462,9 +2462,9 @@ void Config_Add_SDL() {
 	Pmulti = sdl_sec->Add_multi("sensitivity",Property::Changeable::Always, ",");
 	Pmulti->Set_help("Mouse sensitivity. The optional second parameter specifies vertical sensitivity (e.g. 100,-50).");
 	Pmulti->SetValue("100");
-	Pint = Pmulti->GetSection()->Add_int("xsens",Property::Changeable::Always,50);
+	Pint = Pmulti->GetSection()->Add_int("xsens",Property::Changeable::Always,100);
 	Pint->SetMinMax(-1000,1000);
-	Pint = Pmulti->GetSection()->Add_int("ysens",Property::Changeable::Always,50);
+	Pint = Pmulti->GetSection()->Add_int("ysens",Property::Changeable::Always,100);
 	Pint->SetMinMax(-1000,1000);
 
 	Pbool = sdl_sec->Add_bool("waitonerror",Property::Changeable::Always, true);
