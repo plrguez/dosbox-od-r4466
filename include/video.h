@@ -62,12 +62,17 @@ Bitu GFX_SetSize(Bitu width,Bitu height,Bitu flags,double scalex,double scaley,G
 void GFX_SetShader(const char* src);
 
 void GFX_ResetScreen(void);
+void GFX_RestoreMode(void);
 void GFX_Start(void);
 void GFX_Stop(void);
 void GFX_SwitchFullScreen(void);
 bool GFX_StartUpdate(Bit8u * & pixels,Bitu & pitch);
 void GFX_EndUpdate( const Bit16u *changedLines );
 void GFX_GetSize(int &width, int &height, bool &fullscreen);
+bool GFX_IsFullscreen(void);
+void GFX_SwitchFullScreen(void);
+bool GFX_IsDoubleBuffering(void);
+void GFX_SwitchDoubleBuffering(void);
 void GFX_LosingFocus(void);
 void GFX_GetSupportedSize(int &width, int &height);
  int GFX_GetScaleSize( void );

@@ -2092,7 +2092,7 @@ void CPU_ENTER(bool use32,Bitu bytes,Bitu level) {
 	reg_esp=(reg_esp&cpu.stack.notmask)|((sp_index)&cpu.stack.mask);
 }
 
-static void CPU_CycleIncrease(bool pressed) {
+void CPU_CycleIncrease(bool pressed) {
 	if (!pressed) return;
 	if (CPU_CycleAutoAdjust) {
 		CPU_CyclePercUsed+=5;
@@ -2117,7 +2117,7 @@ static void CPU_CycleIncrease(bool pressed) {
 	}
 }
 
-static void CPU_CycleDecrease(bool pressed) {
+void CPU_CycleDecrease(bool pressed) {
 	if (!pressed) return;
 	if (CPU_CycleAutoAdjust) {
 		CPU_CyclePercUsed-=5;

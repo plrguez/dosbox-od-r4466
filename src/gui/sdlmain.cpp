@@ -52,6 +52,7 @@
 #include "render.h"
 #include "sdl_downscaler.h"
 #include "sdl_vkeyboard.h"
+#include "sdl_menu.h"
 
 #define MAPPERFILE "mapper-" VERSION ".map"
 //#define DISABLE_JOYSTICK
@@ -520,8 +521,22 @@ static void PauseDOSBox(bool pressed) {
 		// flush event queue.
 	}
 
+	SDL_FreeSurface(sdl.surface);
+
+#ifdef SDL_TRIPLEBUF
+	sdl.surface = SDL_SetVideoMode(sdl.desktop.full.width, 240, 16, (sdl.desktop.doublebuf ? SDL_TRIPLEBUF : 0) | SDL_HWSURFACE);
+#else
+	sdl.surface = SDL_SetVideoMode(sdl.desktop.full.width, 240, 16, (sdl.desktop.doublebuf ? SDL_DOUBLEBUF : 0) | SDL_HWSURFACE);
+#endif
+
+	// Draw menu
+	MENU_Draw(sdl.surface);
+	SDL_Flip(sdl.surface);
+	KEYBOARD_ClrBuffer();
+
 	while (paused) {
 		SDL_WaitEvent(&event);    // since we're not polling, cpu usage drops to 0.
+		MENU_CheckEvent(&event);
 		switch (event.type) {
 
 			case SDL_QUIT: KillSwitch(true); break;
@@ -548,6 +563,31 @@ static void PauseDOSBox(bool pressed) {
 			}
 #endif
 		}
+		if(!menu_active)
+		{
+		    // Make sure we get all the surfaces clean
+		    for(int i=0; i<4; i++)
+		    {
+			MENU_CleanScreen(sdl.surface);
+			SDL_Flip(sdl.surface);
+		    }
+
+		    paused = false;
+		    GFX_SetTitle(-1, -1, false);
+
+		    // Reset screen surface
+		    SDL_FreeSurface(sdl.surface);
+		    GFX_RestoreMode();
+		    GFX_ResetScreen();
+
+		    KEYBOARD_ClrBuffer();
+
+		    return;
+		}
+
+		MENU_Draw(sdl.surface);
+		SDL_Flip(sdl.surface);
+		KEYBOARD_ClrBuffer();
 	}
 }
 
@@ -1364,6 +1404,10 @@ void GFX_RestoreMode(void) {
 	GFX_UpdateSDLCaptureState();
 }
 
+void GFX_SwitchDoubleBuffering(void)
+{
+    sdl.desktop.doublebuf = !sdl.desktop.doublebuf;
+}
 
 bool GFX_StartUpdate(Bit8u * & pixels,Bitu & pitch) {
 	if (!sdl.active || sdl.updating)
@@ -2102,6 +2146,7 @@ static void GUI_StartUp(Section * sec) {
 		sdl.mouse.autoenable = false;
 		sdl.mouse.autolock = true;
 		GFX_CaptureMouse();
+		MENU_Init(sdl.desktop.bpp);
 		VKEYB_Init(sdl.desktop.bpp);
 	}
 
@@ -2196,6 +2241,10 @@ bool GFX_IsFullscreen(void) {
 	return sdl.desktop.fullscreen;
 }
 
+bool GFX_IsDoubleBuffering(void) {
+	return sdl.desktop.doublebuf;
+}
+
 #if defined(MACOSX)
 #define DB_POLLSKIP 3
 #else
@@ -2208,6 +2257,9 @@ bool GFX_IsFullscreen(void) {
 #else
 #define SDL_XORG_FIX 0
 #endif
+
+static int start_pressed = 0;
+static int select_pressed = 0;
 
 void GFX_Events() {
 	//Don't poll too often. This can be heavy on the OS, especially Macs.
@@ -2303,6 +2355,7 @@ void GFX_Events() {
 					while (paused) {
 						// WaitEvent waits for an event rather than polling, so CPU usage drops to zero
 						SDL_WaitEvent(&ev);
+						MENU_CheckEvent(&ev);
 
 						switch (ev.type) {
 						case SDL_QUIT: throw(0); break; // a bit redundant at linux at least as the active events gets before the quit event.
@@ -2370,6 +2423,19 @@ void GFX_Events() {
 		default:
 			// a hack to implement virtual keyboard
 			if(sdl.desktop.type == SCREEN_SURFACE_DINGUX) {
+				if(event.key.keysym.sym == SDLK_RETURN) start_pressed = (event.type == SDL_KEYDOWN);
+				if(event.key.keysym.sym == SDLK_ESCAPE) select_pressed = (event.type == SDL_KEYDOWN);
+
+				if(start_pressed && select_pressed)
+				{
+				    MENU_Toggle();
+				    PauseDOSBox(menu_active);
+
+				    start_pressed = select_pressed = 0;
+
+				    return;
+				}
+			        if(MENU_CheckEvent(&event)) break;
 				if(!VKEYB_CheckEvent(&event)) break; // else event is modified
 			}
 

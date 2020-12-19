@@ -554,7 +554,7 @@ void RENDER_SetSize(Bitu width,Bitu height,Bitu bpp,float fps,double ratio,bool 
 }
 
 extern void GFX_SetTitle(Bit32s cycles, int frameskip,bool paused);
-static void IncreaseFrameSkip(bool pressed) {
+void IncreaseFrameSkip(bool pressed) {
 	if (!pressed)
 		return;
 	if (render.frameskip.max<10) render.frameskip.max++;
@@ -562,7 +562,7 @@ static void IncreaseFrameSkip(bool pressed) {
 	GFX_SetTitle(-1,render.frameskip.max,false);
 }
 
-static void DecreaseFrameSkip(bool pressed) {
+void DecreaseFrameSkip(bool pressed) {
 	if (!pressed)
 		return;
 	if (render.frameskip.max>0) render.frameskip.max--;

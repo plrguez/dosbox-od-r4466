@@ -84,6 +84,8 @@ void CPU_Enable_SkipAutoAdjust(void);
 void CPU_Disable_SkipAutoAdjust(void);
 void CPU_Reset_AutoAdjust(void);
 
+void CPU_CycleIncrease(bool pressed);
+void CPU_CycleDecrease(bool pressed);
 
 //CPU Stuff
 
