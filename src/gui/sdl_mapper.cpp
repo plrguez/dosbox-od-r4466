@@ -2076,9 +2076,9 @@ static void CreateLayout_320_240_1(void) {
 
 
 	/* The modifier buttons */
-	AddModButton(PX(0),PY(13),40,12,"Mod1",1);
-	AddModButton(PX(2),PY(13),40,12,"Mod2",2);
-	AddModButton(PX(4),PY(13),40,12,"Mod3",3);
+	AddModButton(PX(0),PY(13),38,12,"Mod1",1);
+	AddModButton(PX(2),PY(13),38,12,"Mod2",2);
+	AddModButton(PX(4),PY(13),38,12,"Mod3",3);
 	/* Create Handler buttons */
 	Bitu xpos=0;Bitu ypos=7;
 	for (CHandlerEventVector_it hit=handlergroup.begin();hit!=handlergroup.end();hit++) {
@@ -2112,7 +2112,7 @@ static void CreateLayout_320_240_1(void) {
 	bind_but.save=new CBindButton(150,226,50,12,"Save",BB_Save);
 	bind_but.exit=new CBindButton(200,226,50,12,"Exit",BB_Exit);
 
-	bind_but.change_screen=new CBindButton(250,226,50,12,"Scre",BC_ChgScreen);
+	bind_but.change_screen=new CBindButton(250,226,50,12,">>>",BC_ChgScreen);
 
 	bind_but.bind_title->Change("Bind Title");
 }
