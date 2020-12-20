@@ -2351,7 +2351,7 @@ static struct {
 	{"lctrl",SDLK_LCTRL},	{"rctrl",SDLK_RCTRL},		{"comma",SDLK_COMMA},
 	{"period",SDLK_PERIOD},	{"slash",SDLK_SLASH},		{"printscreen",SDLK_PRINT},
 	{"scrolllock",SDLK_SCROLLOCK},	{"pause",SDLK_PAUSE},		/*{"pagedown",SDLK_PAGEDOWN},*/
-	/*{"pageup",SDLK_PAGEUP},*/	{"insert",SDLK_INSERT},		{"home",SDLK_HOME},
+	/*{"pageup",SDLK_PAGEUP},*/	{"insert",SDLK_INSERT},		/*{"home",SDLK_HOME},*/
 	{"delete",SDLK_DELETE},	{"end",SDLK_END},			{"up",SDLK_UP},
 	{"left",SDLK_LEFT},		{"down",SDLK_DOWN},			{"right",SDLK_RIGHT},
 	{"kp_0",SDLK_KP0},	{"kp_1",SDLK_KP1},	{"kp_2",SDLK_KP2},	{"kp_3",SDLK_KP3},
