@@ -29,7 +29,7 @@
 #include "render.h"
 #include "cpu.h"
 
-#define MENU_ITEMS 7
+#define MENU_ITEMS 9
 
 extern Bitu CPU_extflags_toggle;
 
@@ -47,6 +47,8 @@ struct MENU_Block
     char *core;
     char *cpuType;
     bool doublebuf;
+    bool aspect;
+    char *scaler;
 };
 
 static MENU_Block menu;
@@ -58,6 +60,8 @@ const char *menuoptions[MENU_ITEMS] = {
     "CPU Core: ",
     "CPU Type: ",
     "Triple Buffer: ",
+    "Aspect: ",
+    "Scaler: ",
     "Exit"
 };
 
@@ -66,7 +70,9 @@ void MENU_Init(int bpp)
 {
     if(!menu.surface) 
     {
-        menu.surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, bpp, 0, 0, 0, 0);
+	int width, height;
+	GFX_GetSupportedSize(width, height);
+        menu.surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, bpp, 0, 0, 0, 0);
     }
     
     menu.selected = 0;
@@ -75,9 +81,11 @@ void MENU_Init(int bpp)
     menu.core = (char*)malloc(16);
     menu.cpuType = (char*)malloc(16);
     menu.doublebuf = GFX_IsDoubleBuffering();
+    menu.aspect = render.aspect;
+    menu.scaler = (char*)malloc(16);
     
 #if (C_DYNREC)
-    if(cpudecoder == &CPU_Core_Dynrec_Run) dynamic_available = true;
+    dynamic_available = true;
 #endif 
 }
 
@@ -118,6 +126,49 @@ void MENU_UpdateMenu()
     else if(CPU_ArchitectureType == CPU_ARCHTYPE_486NEWSLOW) strcpy(menu.cpuType, "486 (Slow)");
     else if(CPU_ArchitectureType == CPU_ARCHTYPE_PENTIUMSLOW) strcpy(menu.cpuType, "Pentium (Slow)");
     else strcpy(menu.cpuType, "Unknown");
+
+    // Scaler
+    switch(render.scale.op ) {
+	case scalerOpNormal:
+	    if (render.scale.size==1)
+		strcpy(menu.scaler, "none");
+	    else
+		strcpy(menu.scaler, "normal2x");
+	    break;
+#if RENDER_USE_ADVANCED_SCALERS>2
+	case scalerOpAdvMame:
+	    strcpy(menu.scaler, "advmame2x");
+	    break;
+	case scalerOpAdvInterp:
+	    strcpy(menu.scaler, "advinterp2x");
+	    break;
+	case scalerOpHQ:
+	    strcpy(menu.scaler, "hq2x");
+	    break;
+	case scalerOpSaI:
+	    strcpy(menu.scaler, "2xsai");
+	    break;
+	case scalerOpSuperSaI:
+	    strcpy(menu.scaler, "super2xsai");
+	    break;
+	case scalerOpSuperEagle:
+	    strcpy(menu.scaler, "supereagle");
+	    break;
+#endif
+#if RENDER_USE_ADVANCED_SCALERS>0
+	case scalerOpTV:
+	    strcpy(menu.scaler, "tv2x");
+	    break;
+	case scalerOpRGB:
+	    strcpy(menu.scaler, "rgb2x");
+	    break;
+	case scalerOpScan:
+	    strcpy(menu.scaler, "scan2x");
+	    break;
+	default:
+	    break;
+#endif
+    }
 }
 
 void MENU_Toggle()
@@ -127,10 +178,28 @@ void MENU_Toggle()
     if(!menu_active)
     {
         if(GFX_IsDoubleBuffering() != menu.doublebuf) GFX_SwitchDoubleBuffering();
+	render.aspect = menu.aspect;
+
+	if (menu.scaler == "none") { render.scale.op = scalerOpNormal;render.scale.size = 1; }
+	else if (menu.scaler == "normal2x") { render.scale.op = scalerOpNormal;render.scale.size = 2; }
+#if RENDER_USE_ADVANCED_SCALERS>2
+	else if (menu.scaler == "advmame2x") { render.scale.op = scalerOpAdvMame;render.scale.size = 2; }
+	else if (menu.scaler == "advinterp2x") { render.scale.op = scalerOpAdvInterp;render.scale.size = 2; }
+	else if (menu.scaler == "hq2x") { render.scale.op = scalerOpHQ;render.scale.size = 2; }
+	else if (menu.scaler == "2xsai") { render.scale.op = scalerOpSaI;render.scale.size = 2; }
+	else if (menu.scaler == "super2xsai") { render.scale.op = scalerOpSuperSaI;render.scale.size = 2; }
+	else if (menu.scaler == "supereagle") { render.scale.op = scalerOpSuperEagle;render.scale.size = 2; }
+#endif
+#if RENDER_USE_ADVANCED_SCALERS>0
+	else if (menu.scaler == "tv2x") { render.scale.op = scalerOpTV;render.scale.size = 2; }
+	else if (menu.scaler == "rgb2x"){ render.scale.op = scalerOpRGB;render.scale.size = 2; }
+	else if (menu.scaler == "scan2x"){ render.scale.op = scalerOpScan;render.scale.size = 2; }
+#endif
     }
     else
     {
         menu.doublebuf = GFX_IsDoubleBuffering();
+	menu.aspect = render.aspect;
     }
     
     for(int i=0; i<1024; i++) keystates[i] = false;
@@ -154,7 +223,7 @@ void MENU_Activate()
             MENU_Toggle();
             break;
             
-        case 2: // Resume
+        case 2: // Cycles
             
             if(CPU_AutoDetermineMode & CPU_AUTODETERMINE_CYCLES)
             { // Max
@@ -172,7 +241,7 @@ void MENU_Activate()
             
             break;
             
-        case 3:
+        case 3: // CPU core
             
             if(CPU_AutoDetermineMode & CPU_AUTODETERMINE_CORE) 
             {
@@ -253,8 +322,16 @@ void MENU_Activate()
         case 5: // Double Buffering
             menu.doublebuf = !menu.doublebuf;
             break;
+
+        case 6: // Aspect
+            menu.aspect = !menu.aspect;
+            break;
+
+	case 7: // Scaler
+	    ChangeScalerSize(true);
+            break;
             
-        case 6: // Exit
+        case 8: // Exit
             throw(0);
             break;
     }
@@ -436,6 +513,8 @@ void MENU_Draw(SDL_Surface *surface)
         if(i == 3) stringRGBA(menu.surface, 165, y, menu.core, color, color, color, 0xFF);
         if(i == 4) stringRGBA(menu.surface, 165, y, menu.cpuType, color, color, color, 0xFF);
         if(i == 5) stringRGBA(menu.surface, 165, y, menu.doublebuf ? "On" : "Off", color, color, color, 0xFF);
+	if(i == 6) stringRGBA(menu.surface, 165, y, menu.aspect ? "On" : "Off", color, color, color, 0xFF);
+	if(i == 7) stringRGBA(menu.surface, 165, y, menu.scaler, color, color, color, 0xFF);
         
         y += 24;
     }

@@ -524,9 +524,9 @@ static void PauseDOSBox(bool pressed) {
 	SDL_FreeSurface(sdl.surface);
 
 #ifdef SDL_TRIPLEBUF
-	sdl.surface = SDL_SetVideoMode(sdl.desktop.full.width, 240, 16, (sdl.desktop.doublebuf ? SDL_TRIPLEBUF : 0) | SDL_HWSURFACE);
+	sdl.surface = SDL_SetVideoMode_Wrap(320, 240, 16, (sdl.desktop.doublebuf ? SDL_TRIPLEBUF : 0) | SDL_HWSURFACE);
 #else
-	sdl.surface = SDL_SetVideoMode(sdl.desktop.full.width, 240, 16, (sdl.desktop.doublebuf ? SDL_DOUBLEBUF : 0) | SDL_HWSURFACE);
+	sdl.surface = SDL_SetVideoMode_Wrap(sdl.desktop.supported.widthh, sdl.desktop.supported.height, 16, (sdl.desktop.doublebuf ? SDL_DOUBLEBUF : 0) | SDL_HWSURFACE);
 #endif
 
 	// Draw menu
@@ -953,10 +953,19 @@ dosurface:
 		if (flags & GFX_CAN_32) bpp = 32;
 		sdl.desktop.type = SCREEN_SURFACE_DINGUX;
 
+		if (render.aspect) {
+		    sdl.desktop.full.width = width;
+		    sdl.desktop.full.height = height;
+		} else {
+		    sdl.desktop.full.width = sdl.desktop.supported.width;
+		    sdl.desktop.full.height = sdl.desktop.supported.height;
+		}
+
 		sdl.surface=SDL_SetVideoMode_Wrap(sdl.desktop.full.width,
 						  sdl.desktop.full.height,
 						  sdl.desktop.bpp,
-						 (flags & GFX_CAN_RANDOM) ? SDL_SWSURFACE : SDL_HWSURFACE);
+						 ( (flags & GFX_CAN_RANDOM) ? SDL_SWSURFACE : SDL_HWSURFACE) |
+			                           (sdl.desktop.doublebuf ? SDL_TRIPLEBUF : 0) );
 
 		sdl.blit.buffer=SDL_CreateRGBSurface(SDL_SWSURFACE, // for mixing menu and game screen
 									sdl.desktop.full.width,
@@ -975,7 +984,7 @@ dosurface:
 			sdl.clip.w=0; sdl.clip.h=0; sdl.clip.x=0; sdl.clip.y=0;
 			sdl.blit.surface=SDL_CreateRGBSurface(SDL_SWSURFACE,width,height,bpp,0,0,0,0);
 
-			if (sdl.desktop.supported.height != 640) {
+			if (sdl.desktop.supported.height != 640 && !render.aspect) {
 			    if(width == 640 && height == 400)
 				GFX_PDownscale = (bpp == 16 ? &GFX_Downscale_640x400_to_320x240_16 : &GFX_Downscale_640x400_to_320x240_32);
 			    else if(width == 640 && height == 480)
@@ -1333,6 +1342,15 @@ static void CaptureMouse(bool pressed) {
 	if (!pressed)
 		return;
 	GFX_CaptureMouse();
+}
+
+static void MenuStart(bool pressed)
+{
+    if (!pressed)
+	return;
+
+    MENU_Toggle();
+    PauseDOSBox(menu_active);
 }
 
 #if defined (WIN32)
@@ -2155,6 +2173,7 @@ static void GUI_StartUp(Section * sec) {
 	MAPPER_AddHandler(CaptureMouse,MK_f10,MMOD1,"capmouse","Cap Mouse");
 	MAPPER_AddHandler(SwitchFullScreen,MK_return,MMOD2,"fullscr","Fullscreen");
 	MAPPER_AddHandler(Restart,MK_home,MMOD1|MMOD2,"restart","Restart");
+	MAPPER_AddHandler(MenuStart,MK_kpdivide,MMOD2,"menu","Menu"); // L3+R3
 #if C_DEBUG
 	/* Pause binds with activate-debugger */
 #else
@@ -2167,10 +2186,6 @@ static void GUI_StartUp(Section * sec) {
 
 	printf("Supported mode %ix%i\n",sdl.desktop.supported.width,sdl.desktop.supported.height);
 	printf("Mouse locked %d\n",mouselocked);
-
-	if (GFX_GetScaleSize()>1) {
-
-	}
 }
 
 void Mouse_AutoLock(bool enable) {
@@ -2257,9 +2272,6 @@ bool GFX_IsDoubleBuffering(void) {
 #else
 #define SDL_XORG_FIX 0
 #endif
-
-static int start_pressed = 0;
-static int select_pressed = 0;
 
 void GFX_Events() {
 	//Don't poll too often. This can be heavy on the OS, especially Macs.
@@ -2423,18 +2435,6 @@ void GFX_Events() {
 		default:
 			// a hack to implement virtual keyboard
 			if(sdl.desktop.type == SCREEN_SURFACE_DINGUX) {
-				if(event.key.keysym.sym == SDLK_RETURN) start_pressed = (event.type == SDL_KEYDOWN);
-				if(event.key.keysym.sym == SDLK_ESCAPE) select_pressed = (event.type == SDL_KEYDOWN);
-
-				if(start_pressed && select_pressed)
-				{
-				    MENU_Toggle();
-				    PauseDOSBox(menu_active);
-
-				    start_pressed = select_pressed = 0;
-
-				    return;
-				}
 			        if(MENU_CheckEvent(&event)) break;
 				if(!VKEYB_CheckEvent(&event)) break; // else event is modified
 			}

@@ -41,6 +41,8 @@
 Render_t render;
 ScalerLineHandler_t RENDER_DrawLine;
 
+extern bool menu_active;
+
 static void RENDER_CallBack( GFX_CallBackFunctions_t function );
 
 static void Check_Palette(void) {
@@ -581,7 +583,7 @@ static void ChangeScaler(bool pressed) {
 	}
 	RENDER_CallBack( GFX_CallBackReset );
 } */
-static void ChangeScalerSize(bool pressed) {
+void ChangeScalerSize(bool pressed) {
 	if (!pressed)
 		return;
 	render.scale.op = (scalerOperation)((int)render.scale.op+1);
@@ -594,7 +596,7 @@ static void ChangeScalerSize(bool pressed) {
 		    render.scale.size = 1;
 		}
 	}
-	RENDER_CallBack( GFX_CallBackReset );
+	//RENDER_CallBack( GFX_CallBackReset );
 }
 static void ChangeAspectRatio(bool pressed) {
 	if (!pressed)
@@ -761,8 +763,6 @@ void RENDER_Init(Section * sec) {
 
 	MAPPER_AddHandler(DecreaseFrameSkip,MK_f7,MMOD1,"decfskip","Dec Fskip");
 	MAPPER_AddHandler(IncreaseFrameSkip,MK_f8,MMOD1,"incfskip","Inc Fskip");
-	MAPPER_AddHandler(ChangeScalerSize,MK_escape,MMOD2,"chgsclsz","Chg ScSize");
-        MAPPER_AddHandler(ChangeAspectRatio,MK_escape,MMOD1,"chgaspect","Chg Aspect");
 	GFX_SetTitle(-1,render.frameskip.max,false);
 }
 
