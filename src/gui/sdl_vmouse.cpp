@@ -35,6 +35,15 @@ static void CalculateIconPosition(SDL_Surface *surface, SDL_Rect &position)
         position.h = (surface->h > surface->w) ? vmouse.icon->h * 2 : vmouse.icon->h;
 }
 
+void VMOUSE_Toggle(bool pressed)
+{
+    if (!pressed) return;
+
+    if(vkeyb_active) return;
+
+    VMOUSE_SetEnabled(!VMOUSE_IsEnabled());
+}
+
 void VMOUSE_Init(int bpp)
 {
     vmouse.x = 0.0;
@@ -112,12 +121,13 @@ bool VMOUSE_CheckEvent(SDL_Event *event)
     if(event->key.keysym.sym == SDLK_RETURN) return false;
     if(event->key.keysym.sym == SDLK_ESCAPE) return false;
     if(event->key.keysym.sym == SDLK_PAGEUP) return false;
-    if(event->key.keysym.sym == SDLK_PAGEDOWN) return false;
+    if(event->key.keysym.sym == SDLK_BACKSPACE) return false;
     if(event->key.keysym.sym == SDLK_KP_DIVIDE) return false;
     if(event->key.keysym.sym == SDLK_KP_PERIOD) return false;
     if(event->key.keysym.sym == SDLK_TAB) return false;
+    if(event->key.keysym.sym == SDLK_HOME) return false;
     
-    if(event->key.keysym.sym == SDLK_BACKSPACE)
+    if(event->key.keysym.sym == SDLK_PAGEDOWN)
     {
         if(event->type == SDL_KEYDOWN) VMOUSE_SetEnabled(!VMOUSE_IsEnabled());
         

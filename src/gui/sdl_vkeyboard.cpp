@@ -219,13 +219,22 @@ void move_cursor(int dx, int dy)
 
 void GFX_ForceUpdate(); // in sdlmain.cpp
 
+void VKEYB_Toggle(bool pressed)
+{
+    if (!pressed) return;
+
+    vkeyb_active ^= 1;
+    if (!vkeyb_active) vkeyb_last = true;
+    GFX_ForceUpdate();
+}
+
 int VKEYB_CheckEvent(SDL_Event *event)
 {
 	int ret = 1;
 	bool update_screen = false;
 	bool keystate = (event->type == SDL_KEYDOWN) ? true : false;
 
-	if(keystate && event->key.keysym.sym == SDLK_TAB) {
+	if(keystate && event->key.keysym.sym == SDLK_PAGEUP) {
 		vkeyb_active ^= 1;
 		if(!vkeyb_active) vkeyb_last = true;
 		ret = 0;

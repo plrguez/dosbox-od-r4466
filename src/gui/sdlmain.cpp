@@ -2181,9 +2181,11 @@ static void GUI_StartUp(Section * sec) {
 	/* Get some Event handlers */
 	MAPPER_AddHandler(KillSwitch,MK_kpperiod,MMOD1,"shutdown","ShutDown");
 	MAPPER_AddHandler(CaptureMouse,MK_f10,MMOD1,"capmouse","Cap Mouse");
-	MAPPER_AddHandler(SwitchFullScreen,MK_return,MMOD2,"fullscr","Fullscreen");
+	//MAPPER_AddHandler(SwitchFullScreen,MK_return,MMOD2,"fullscr","Fullscreen");
 	MAPPER_AddHandler(Restart,MK_home,MMOD1|MMOD2,"restart","Restart");
 	MAPPER_AddHandler(MenuStart,MK_home,0,"menu","Menu"); // L3+R3
+	MAPPER_AddHandler(&VKEYB_Toggle,MK_escape,MMOD2,"vkeyborad","VirtualKeyb");
+	MAPPER_AddHandler(&VMOUSE_Toggle,MK_return,MMOD2,"vmouse","VirtualMouse");
 #if C_DEBUG
 	/* Pause binds with activate-debugger */
 #else

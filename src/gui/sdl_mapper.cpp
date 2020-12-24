@@ -2379,8 +2379,8 @@ static void CreateDefaultBinds(void) {
 		CreateStringBind(buffer);
 		i++;
 	}
-	sprintf(buffer,"mod_1 \"key %d\"",SDLK_PAGEUP);CreateStringBind(buffer); /*L2 */
-	sprintf(buffer,"mod_2 \"key %d\"",SDLK_PAGEDOWN);CreateStringBind(buffer); /*R2 */
+	sprintf(buffer,"mod_1 \"key %d\"",SDLK_TAB);CreateStringBind(buffer); /*L1*/
+	sprintf(buffer,"mod_2 \"key %d\"",SDLK_BACKSPACE);CreateStringBind(buffer); /*R1*/
 	for (CHandlerEventVector_it hit=handlergroup.begin();hit!=handlergroup.end();hit++) {
 		(*hit)->MakeDefaultBind(buffer);
 		CreateStringBind(buffer);

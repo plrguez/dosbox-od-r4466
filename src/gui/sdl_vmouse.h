@@ -9,6 +9,7 @@ void VMOUSE_SetEnabled(bool enabled);
 bool VMOUSE_CheckEvent(SDL_Event *event);
 void VMOUSE_BlitVMouse(SDL_Surface *surface);
 void VMOUSE_CleanVMouse(SDL_Surface *surface);
+void VMOUSE_Toggle(bool pressed);
 
 
 #endif /* SDL_VMOUSE_H */

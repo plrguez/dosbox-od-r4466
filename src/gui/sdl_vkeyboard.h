@@ -14,6 +14,9 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#ifndef SDL_VKEYBOARD_H
+#define SDL_VKEYBOARD_H
+
  extern bool vkeyb_active;
  extern bool vkeyb_last;
 
@@ -22,3 +25,6 @@
  int VKEYB_CheckEvent(SDL_Event *event);
  void VKEYB_BlitVkeyboard(SDL_Surface *surface);
  void VKEYB_CleanVkeyboard(SDL_Surface *surface);
+ void VKEYB_Toggle(bool pressed);
+
+ #endif /* SDL_VKEYBOARD_H */
