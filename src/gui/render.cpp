@@ -696,7 +696,6 @@ void RENDER_Init(Section * sec) {
 	} else if (control->cmdline->FindString("-forcescaler",cline,true)) {
 		section->HandleInputline(std::string("scaler=") + cline + " forced");
 	} else if ( GFX_GetScaleSize() > 1 ) {
-		printf("Scaler set to normat2x");
 		section->HandleInputline(std::string("scaler=normal2x"));
 	}
 	   
@@ -758,8 +757,6 @@ void RENDER_Init(Section * sec) {
 
 	if(!running) render.updating=true;
 	running = true;
-	
-	printf("Scaler %s\n",scaler.c_str());
 
 	MAPPER_AddHandler(DecreaseFrameSkip,MK_f7,MMOD1,"decfskip","Dec Fskip");
 	MAPPER_AddHandler(IncreaseFrameSkip,MK_f8,MMOD1,"incfskip","Inc Fskip");
