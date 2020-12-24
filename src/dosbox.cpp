@@ -686,7 +686,7 @@ void DOSBOX_Init(void) {
 		"auto chooses emulation depending on real joystick(s).\n"
 		"(Remember to reset DOSBox's mapperfile if you saved it earlier)");
 
-	Pbool = secprop->Add_bool("timed",Property::Changeable::WhenIdle,true);
+	Pbool = secprop->Add_bool("timed",Property::Changeable::WhenIdle,false);
 	Pbool->Set_help("enable timed intervals for axis. Experiment with this option, if your joystick drifts (away).");
 
 	Pbool = secprop->Add_bool("autofire",Property::Changeable::WhenIdle,false);
