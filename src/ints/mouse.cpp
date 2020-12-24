@@ -128,6 +128,21 @@ static struct {
 	Bit16s gran_x,gran_y;
 } mouse;
 
+bool Mouse_IsHidden(void)
+{
+    return mouse.hidden || mouse.inhibit_draw;
+}
+
+void Mouse_ShowCursor(void)
+{
+    mouse.hidden = 0;
+}
+
+void Mouse_HideCursor(void)
+{
+    mouse.hidden = 1;
+}
+
 bool Mouse_SetPS2State(bool use) {
 	if (use && (!ps2callbackinit)) {
 		useps2callback = false;

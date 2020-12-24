@@ -53,6 +53,7 @@
 #include "sdl_downscaler.h"
 #include "sdl_vkeyboard.h"
 #include "sdl_menu.h"
+#include "sdl_vmouse.h"
 
 #define MAPPERFILE "mapper-" VERSION ".map"
 //#define DISABLE_JOYSTICK
@@ -1545,12 +1546,15 @@ void GFX_EndUpdate( const Bit16u *changedLines ) {
 	case SCREEN_SURFACE_DINGUX:
 		if(!vkeyb_active && !vkeyb_last) {
 			if (sdl.blit.surface) {
+				VMOUSE_BlitVMouse(sdl.blit.surface);
 				if(GFX_PDownscale) {
 					GFX_PDOWNSCALE(sdl.blit.surface, sdl.surface);
 				} else {
 					SDL_BlitSurface(sdl.blit.surface, 0, sdl.surface, &sdl.clip);
 				}
+				VMOUSE_CleanVMouse(sdl.blit.surface);
  			} else {
+				VMOUSE_BlitVMouse(sdl.surface);
 				if(SDL_MUSTLOCK(sdl.surface)) SDL_UnlockSurface(sdl.surface);
 			}
 		} else {
@@ -1702,6 +1706,11 @@ static void GUI_ShutDown(Section * /*sec*/) {
 	if (sdl.draw.callback) (sdl.draw.callback)( GFX_CallBackStop );
 	if (sdl.mouse.locked) GFX_CaptureMouse();
 	if (sdl.desktop.fullscreen) GFX_SwitchFullScreen();
+	if(sdl.desktop.want_type == SCREEN_SURFACE_DINGUX) {
+		MENU_Deinit();
+		VKEYB_Deinit();
+		VMOUSE_Deinit();
+	}
 }
 
 
@@ -2166,6 +2175,7 @@ static void GUI_StartUp(Section * sec) {
 		GFX_CaptureMouse();
 		MENU_Init(sdl.desktop.bpp);
 		VKEYB_Init(sdl.desktop.bpp);
+		VMOUSE_Init(sdl.desktop.bpp);
 	}
 
 	/* Get some Event handlers */
@@ -2173,7 +2183,7 @@ static void GUI_StartUp(Section * sec) {
 	MAPPER_AddHandler(CaptureMouse,MK_f10,MMOD1,"capmouse","Cap Mouse");
 	MAPPER_AddHandler(SwitchFullScreen,MK_return,MMOD2,"fullscr","Fullscreen");
 	MAPPER_AddHandler(Restart,MK_home,MMOD1|MMOD2,"restart","Restart");
-	MAPPER_AddHandler(MenuStart,MK_kpdivide,MMOD2,"menu","Menu"); // L3+R3
+	MAPPER_AddHandler(MenuStart,MK_home,0,"menu","Menu"); // L3+R3
 #if C_DEBUG
 	/* Pause binds with activate-debugger */
 #else
@@ -2185,7 +2195,6 @@ static void GUI_StartUp(Section * sec) {
 	if(keystate&KMOD_CAPS) startup_state_capslock = true;
 
 	printf("Supported mode %ix%i\n",sdl.desktop.supported.width,sdl.desktop.supported.height);
-	printf("Mouse locked %d\n",mouselocked);
 }
 
 void Mouse_AutoLock(bool enable) {
@@ -2436,7 +2445,11 @@ void GFX_Events() {
 			// a hack to implement virtual keyboard
 			if(sdl.desktop.type == SCREEN_SURFACE_DINGUX) {
 			        if(MENU_CheckEvent(&event)) break;
-				if(!VKEYB_CheckEvent(&event)) break; // else event is modified
+				if(!VKEYB_CheckEvent(&event)) {
+				    VMOUSE_CheckEvent(&event); // Reactivate mouse?
+				    break; // else event is modified
+				}
+				if(VMOUSE_CheckEvent(&event)) break;
 			}
 
 			void MAPPER_CheckEvent(SDL_Event * event);

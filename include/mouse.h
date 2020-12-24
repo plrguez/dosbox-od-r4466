@@ -22,6 +22,7 @@
 #define DOSBOX_MOUSE_H
 
 
+bool Mouse_IsHidden(void);
 void Mouse_ShowCursor(void);
 void Mouse_HideCursor(void);
 
