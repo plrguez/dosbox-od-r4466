@@ -29,7 +29,7 @@
 #include "render.h"
 #include "cpu.h"
 
-#define MENU_ITEMS 9
+#define MENU_ITEMS 10
 
 extern Bitu CPU_extflags_toggle;
 
@@ -48,6 +48,7 @@ struct MENU_Block
     char *cpuType;
     bool doublebuf;
     bool aspect;
+    char *fullresolution;
     char *scaler;
 };
 
@@ -61,6 +62,7 @@ const char *menuoptions[MENU_ITEMS] = {
     "CPU Type: ",
     "Triple Buffer: ",
     "Aspect: ",
+    "Resolution: ",
     "Scaler: ",
     "Exit"
 };
@@ -82,6 +84,7 @@ void MENU_Init(int bpp)
     menu.cpuType = (char*)malloc(16);
     menu.doublebuf = GFX_IsDoubleBuffering();
     menu.aspect = render.aspect;
+    menu.fullresolution = (char*)malloc(16);
     menu.scaler = (char*)malloc(16);
     
 #if (C_DYNREC)
@@ -91,6 +94,12 @@ void MENU_Init(int bpp)
 
 void MENU_Deinit()
 {
+    free(menu.frameskip);
+    free(menu.cycles);
+    free(menu.core);
+    free(menu.cpuType);
+    free(menu.fullresolution);
+    free(menu.scaler);
     SDL_FreeSurface(menu.surface);
 }
 
@@ -126,6 +135,11 @@ void MENU_UpdateMenu()
     else if(CPU_ArchitectureType == CPU_ARCHTYPE_486NEWSLOW) strcpy(menu.cpuType, "486 (Slow)");
     else if(CPU_ArchitectureType == CPU_ARCHTYPE_PENTIUMSLOW) strcpy(menu.cpuType, "Pentium (Slow)");
     else strcpy(menu.cpuType, "Unknown");
+
+    if (GFX_IsFullScreenResolution())
+	strcpy(menu.fullresolution, "Desktop");
+    else
+	strcpy(menu.fullresolution, "Original");
 
     // Scaler
     switch(render.scale.op ) {
@@ -327,11 +341,15 @@ void MENU_Activate()
             menu.aspect = !menu.aspect;
             break;
 
-	case 7: // Scaler
+	case 7: // Fullscreen
+	    GFX_SwitchFullScreenResolution();
+            break;
+
+	case 8: // Scaler
 	    ChangeScalerSize(true);
             break;
             
-        case 8: // Exit
+        case 9: // Exit
             throw(0);
             break;
     }
@@ -514,7 +532,8 @@ void MENU_Draw(SDL_Surface *surface)
         if(i == 4) stringRGBA(menu.surface, 165, y, menu.cpuType, color, color, color, 0xFF);
         if(i == 5) stringRGBA(menu.surface, 165, y, menu.doublebuf ? "On" : "Off", color, color, color, 0xFF);
 	if(i == 6) stringRGBA(menu.surface, 165, y, menu.aspect ? "On" : "Off", color, color, color, 0xFF);
-	if(i == 7) stringRGBA(menu.surface, 165, y, menu.scaler, color, color, color, 0xFF);
+	if(i == 7) stringRGBA(menu.surface, 165, y, menu.fullresolution, color, color, color, 0xFF);
+	if(i == 8) stringRGBA(menu.surface, 165, y, menu.scaler, color, color, color, 0xFF);
         
         y += 24;
     }

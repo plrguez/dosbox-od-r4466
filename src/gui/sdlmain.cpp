@@ -954,7 +954,7 @@ dosurface:
 		if (flags & GFX_CAN_32) bpp = 32;
 		sdl.desktop.type = SCREEN_SURFACE_DINGUX;
 
-		if (render.aspect) {
+		if (!sdl.desktop.full.fixed) {
 		    sdl.desktop.full.width = width;
 		    sdl.desktop.full.height = height;
 		} else {
@@ -985,7 +985,7 @@ dosurface:
 			sdl.clip.w=0; sdl.clip.h=0; sdl.clip.x=0; sdl.clip.y=0;
 			sdl.blit.surface=SDL_CreateRGBSurface(SDL_SWSURFACE,width,height,bpp,0,0,0,0);
 
-			if (sdl.desktop.supported.height != 640 && !render.aspect) {
+			if (sdl.desktop.supported.height != 640 && sdl.desktop.full.fixed) {
 			    if(width == 640 && height == 400)
 				GFX_PDownscale = (bpp == 16 ? &GFX_Downscale_640x400_to_320x240_16 : &GFX_Downscale_640x400_to_320x240_32);
 			    else if(width == 640 && height == 480)
@@ -1375,6 +1375,23 @@ void sticky_keys(bool restore){
 	}
 }
 #endif
+
+bool GFX_IsFullScreenResolution(void) {
+    return sdl.desktop.full.fixed;
+}
+
+void GFX_SwitchFullScreenResolution(void) {
+    sdl.desktop.full.fixed=!sdl.desktop.full.fixed;
+    if (sdl.desktop.full.fixed) {
+	sdl.desktop.full.height = sdl.desktop.supported.height;
+	sdl.desktop.full.width = sdl.desktop.supported.width;
+    }
+    else
+    {
+	sdl.desktop.full.height = 0;
+	sdl.desktop.full.width = 0;
+    }
+}
 
 void GFX_SwitchFullScreen(void) {
 	sdl.desktop.fullscreen=!sdl.desktop.fullscreen;
