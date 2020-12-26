@@ -8,18 +8,27 @@
 #include "sdl_vmouse_image.h"
 #include "sdl_vmouse.h"
 
+#define MOUSE_SENSIVITY 4
+#define MAX_MOUSE_ACCELERATION_X (MOUSE_SENSIVITY * 2)
+#define MAX_MOUSE_ACCELERATION_Y MOUSE_SENSIVITY
+
 static struct {
     double x, y;
     double accelx, accely;
+    double prev_accelx, prev_accely;
     
     bool left, right, up, down;
     bool enabled;
+    vmouse_control_t current_control;
     bool old_enabled;
     
     SDL_Surface *cursor;
     SDL_Surface *icon;
     SDL_Surface *icon2x;
     SDL_Surface *back;
+    SDL_Joystick *sdl_joystick;
+    int num_axes;
+    int buttons;
 } vmouse;
 
 extern bool vkeyb_active;
@@ -50,11 +59,16 @@ void VMOUSE_Init(int bpp)
     vmouse.y = 0.0;
     vmouse.accelx = 0.0;
     vmouse.accely = 0.0;
+    vmouse.prev_accelx = 0.0;
+    vmouse.prev_accely = 0.0;
     
     vmouse.left = false;
     vmouse.right = false;
     vmouse.up = false;
     vmouse.down = false;
+
+    vmouse.buttons = 3;
+
     vmouse.enabled = false;
     vmouse.old_enabled = false;
     
@@ -68,6 +82,12 @@ void VMOUSE_Init(int bpp)
     vmouse.cursor->h = 24;
     vmouse.icon->w = 16;
     vmouse.icon->h = 16;
+    vmouse.current_control = DPAD;
+    
+    vmouse.sdl_joystick = 0;
+    vmouse.num_axes = 0;
+    if (SDL_NumJoysticks>0) vmouse.sdl_joystick = SDL_JoystickOpen(0);
+    if (vmouse.sdl_joystick) vmouse.num_axes = SDL_JoystickNumAxes(vmouse.sdl_joystick);
 }
 
 void VMOUSE_Deinit()
@@ -75,11 +95,57 @@ void VMOUSE_Deinit()
     if(vmouse.cursor) SDL_FreeSurface(vmouse.cursor);
     if(vmouse.icon) SDL_FreeSurface(vmouse.icon);
     if(vmouse.icon2x) SDL_FreeSurface(vmouse.icon2x);
+    if(vmouse.sdl_joystick) SDL_JoystickClose(vmouse.sdl_joystick);
 }
 
 bool VMOUSE_IsEnabled(void)
 {
     return vmouse.enabled;
+}
+
+vmouse_control_t VMOUSE_GetCurrentControl(void)
+{
+    return vmouse.current_control;
+}
+
+bool VMOUSE_UsingAxisControl(void)
+{
+    return (vmouse.current_control == LEFT_STICK || vmouse.current_control == RIGHT_STICK);
+}
+
+void VMOUSE_ChangeCurrentControl(void)
+{
+    switch (vmouse.current_control) {
+	case DPAD:
+	    if (vmouse.num_axes)
+		vmouse.current_control = LEFT_STICK;
+	    break;
+
+	case LEFT_STICK:
+	    if (vmouse.num_axes > 2)
+		vmouse.current_control = RIGHT_STICK;
+	    else
+		vmouse.current_control = DPAD;
+	    break;
+
+	case RIGHT_STICK:
+	default:
+	    vmouse.current_control = DPAD;
+	    break;
+    }
+}
+
+void VMOUSE_ChangeNumberOfButtons(void)
+{
+    if (vmouse.buttons == 3)
+	vmouse.buttons = 2;
+    else
+	vmouse.buttons = 3;
+}
+
+int VMOUSE_GetNumberOfButtons(void)
+{
+    return vmouse.buttons;
 }
 
 void VMOUSE_SetEnabled(bool enabled)
@@ -90,6 +156,8 @@ void VMOUSE_SetEnabled(bool enabled)
     {
         vmouse.accelx = 0.0;
         vmouse.accely = 0.0;
+        vmouse.prev_accelx = 0.0;
+        vmouse.prev_accely = 0.0;
 
         vmouse.left = false;
         vmouse.right = false;
@@ -98,6 +166,27 @@ void VMOUSE_SetEnabled(bool enabled)
     }
     
     GFX_ForceUpdate();
+}
+
+bool VMOUSE_CheckAxisEvent(void) {
+    if (!vmouse.sdl_joystick) return false;
+    if(vkeyb_active) return false;
+    if(!vmouse.enabled || !VMOUSE_UsingAxisControl()) return false;
+
+    int axis = vmouse.current_control == LEFT_STICK ? 0 : 2;
+    Sint16 xaxis_pos = SDL_JoystickGetAxis(vmouse.sdl_joystick,axis++);
+    Sint16 yaxis_pos = SDL_JoystickGetAxis(vmouse.sdl_joystick,axis);
+
+    vmouse.accelx = (xaxis_pos/32768.0)*MAX_MOUSE_ACCELERATION_X;
+    vmouse.accely = (yaxis_pos/32768.0)*MAX_MOUSE_ACCELERATION_Y;
+
+    if (vmouse.prev_accelx != vmouse.accelx || vmouse.prev_accely != vmouse.accely) {
+	vmouse.prev_accelx = vmouse.accelx;
+	vmouse.prev_accely = vmouse.accely;
+	GFX_ForceUpdate();
+    }
+
+    return true;
 }
 
 bool VMOUSE_CheckEvent(SDL_Event *event)
@@ -116,38 +205,62 @@ bool VMOUSE_CheckEvent(SDL_Event *event)
 	VMOUSE_SetEnabled(true);
 	return true;
     }
+
+    // Enable/Disbale Virtual Mouse
+    if(event->key.keysym.sym == SDLK_PAGEDOWN)
+    {
+        if(event->type == SDL_KEYDOWN) VMOUSE_SetEnabled(!VMOUSE_IsEnabled());
+        return true;
+    }
+
+    if(!vmouse.enabled) return false;
     
     // Don't block buttons we're not using
     if(event->key.keysym.sym == SDLK_RETURN) return false;
     if(event->key.keysym.sym == SDLK_ESCAPE) return false;
+    if(event->key.keysym.sym == SDLK_SPACE) return false;
     if(event->key.keysym.sym == SDLK_PAGEUP) return false;
     if(event->key.keysym.sym == SDLK_BACKSPACE) return false;
     if(event->key.keysym.sym == SDLK_KP_DIVIDE) return false;
     if(event->key.keysym.sym == SDLK_KP_PERIOD) return false;
     if(event->key.keysym.sym == SDLK_TAB) return false;
     if(event->key.keysym.sym == SDLK_HOME) return false;
-    
-    if(event->key.keysym.sym == SDLK_PAGEDOWN)
-    {
-        if(event->type == SDL_KEYDOWN) VMOUSE_SetEnabled(!VMOUSE_IsEnabled());
-        
-        return true;
-    }
-    
-    if(!vmouse.enabled) return false;
 
-    if(event->key.keysym.sym == SDLK_LEFT) vmouse.left = (event->type != SDL_KEYUP);
-    if(event->key.keysym.sym == SDLK_RIGHT) vmouse.right = (event->type != SDL_KEYUP);
-    if(event->key.keysym.sym == SDLK_UP) vmouse.up = (event->type != SDL_KEYUP);
-    if(event->key.keysym.sym == SDLK_DOWN) vmouse.down = (event->type != SDL_KEYUP);
-    
-    if(!vmouse.left && !vmouse.right) vmouse.accelx = 0.0;
-    if(!vmouse.up && !vmouse.down) vmouse.accely = 0.0;
-    
-    if(event->key.keysym.sym == SDLK_LCTRL) (event->type == SDL_KEYUP) ? Mouse_ButtonReleased(0) : Mouse_ButtonPressed(0); // A
-    if(event->key.keysym.sym == SDLK_LALT) (event->type == SDL_KEYUP) ? Mouse_ButtonReleased(2) : Mouse_ButtonPressed(2); // B
-    if(event->key.keysym.sym == SDLK_SPACE) (event->type == SDL_KEYUP) ? Mouse_ButtonReleased(2) : Mouse_ButtonPressed(2); // X
-    if(event->key.keysym.sym == SDLK_LSHIFT) (event->type == SDL_KEYUP) ? Mouse_ButtonReleased(1) : Mouse_ButtonPressed(1); // Y
+    // 2 Mouse buttons don't block Y
+    if(vmouse.buttons == 2 && event->key.keysym.sym == SDLK_LSHIFT) return false;
+
+    // Mouse emulation with Sticks don't block D-PAD Keys
+    if (VMOUSE_UsingAxisControl()) {
+	// With Axis control free use of DPAD keys
+	if (event->key.keysym.sym == SDLK_LEFT || event->key.keysym.sym == SDLK_RIGHT ||
+	    event->key.keysym.sym == SDLK_UP || event->key.keysym.sym == SDLK_DOWN )
+	    return false;
+    }
+
+    // D-Pad Keys only when we don't use Stick
+    if (!VMOUSE_UsingAxisControl()) {
+	if(event->key.keysym.sym == SDLK_LEFT) vmouse.left = (event->type != SDL_KEYUP);
+	if(event->key.keysym.sym == SDLK_RIGHT) vmouse.right = (event->type != SDL_KEYUP);
+	if(event->key.keysym.sym == SDLK_UP) vmouse.up = (event->type != SDL_KEYUP);
+	if(event->key.keysym.sym == SDLK_DOWN) vmouse.down = (event->type != SDL_KEYUP);
+
+	if(!vmouse.left && !vmouse.right) vmouse.accelx = 0.0;
+	if(!vmouse.up && !vmouse.down) vmouse.accely = 0.0;
+	if(vmouse.left) vmouse.accelx = -MOUSE_SENSIVITY;
+	if(vmouse.right) vmouse.accelx = MOUSE_SENSIVITY;
+	if(vmouse.up) vmouse.accely = -MOUSE_SENSIVITY;
+	if(vmouse.down) vmouse.accely = MOUSE_SENSIVITY;
+    }
+
+    // 2 or 3 Mouse buttons
+    if(vmouse.buttons == 2) {
+	if(event->key.keysym.sym == SDLK_LCTRL) (event->type == SDL_KEYUP) ? Mouse_ButtonReleased(0) : Mouse_ButtonPressed(0); // A
+	if(event->key.keysym.sym == SDLK_LALT) (event->type == SDL_KEYUP) ? Mouse_ButtonReleased(1) : Mouse_ButtonPressed(1); // B
+    } else {
+	if(event->key.keysym.sym == SDLK_LCTRL) (event->type == SDL_KEYUP) ? Mouse_ButtonReleased(0) : Mouse_ButtonPressed(0); // A
+	if(event->key.keysym.sym == SDLK_LALT) (event->type == SDL_KEYUP) ? Mouse_ButtonReleased(2) : Mouse_ButtonPressed(2); // B
+	if(event->key.keysym.sym == SDLK_LSHIFT) (event->type == SDL_KEYUP) ? Mouse_ButtonReleased(1) : Mouse_ButtonPressed(1); // Y
+    }
     
     GFX_ForceUpdate();
     
@@ -258,12 +371,12 @@ void VMOUSE_BlitVMouse(SDL_Surface *surface)
     
     if(!vmouse.enabled) return;
 
-    vmouse.accelx += vmouse.left ? -1 : vmouse.right ? 1 : 0.0;
-    vmouse.accely += vmouse.up ? -1 : vmouse.down ? 1 : 0.0;
+//    vmouse.accelx += vmouse.left ? -1 : vmouse.right ? 1 : 0.0;
+//    vmouse.accely += vmouse.up ? -1 : vmouse.down ? 1 : 0.0;
     vmouse.x += vmouse.accelx;
     vmouse.y += vmouse.accely;
     
-    Mouse_CursorMoved(vmouse.accelx, vmouse.accely, vmouse.accelx, vmouse.accely, true);
+    Mouse_CursorMoved(vmouse.accelx, vmouse.accely, vmouse.x, vmouse.y, true);
     
     if(!Mouse_IsHidden())
     {

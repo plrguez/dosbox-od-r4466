@@ -2320,7 +2320,10 @@ void GFX_Events() {
 	if (time - poll_delay > 20) {
 		poll_delay = time;
 		if (sdl.num_joysticks > 0) SDL_JoystickUpdate();
-		MAPPER_UpdateJoysticks();
+		if(VMOUSE_IsEnabled() && VMOUSE_UsingAxisControl())
+		    VMOUSE_CheckAxisEvent();
+		else
+		    MAPPER_UpdateJoysticks();
 	}
 #endif
 	while (SDL_PollEvent(&event)) {

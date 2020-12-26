@@ -28,8 +28,7 @@
 #include "video.h"
 #include "render.h"
 #include "cpu.h"
-
-#define MENU_ITEMS 10
+#include "sdl_vmouse.h"
 
 extern Bitu CPU_extflags_toggle;
 
@@ -38,10 +37,27 @@ bool menu_active = false;
 bool menu_last = false;
 bool keystates[1024];
 
+typedef enum {
+    MENU_RESUME,
+    MENU_FRAMESKIP,
+    MENU_CYCLES,
+    MENU_CPU_CORE,
+    MENU_CPU_TYPE,
+    MENU_DOUBLE_BUFFER,
+    MENU_ASPECT,
+    MENU_RESOLUTION,
+    MENU_SCALER,
+    MENU_VMOUSE_CONTROL,
+    MENU_VMOUSE_BUTTONS,
+    MENU_EXIT,
+} menu_items_t;
+
+#define MENU_ITEMS 12
+
 struct MENU_Block 
 {
     SDL_Surface *surface;
-    int selected;
+    menu_items_t selected;
     char *frameskip;
     char *cycles;
     char *core;
@@ -50,6 +66,8 @@ struct MENU_Block
     bool aspect;
     char *fullresolution;
     char *scaler;
+    char *vmouse;
+    char *vmouse_buttons;
 };
 
 static MENU_Block menu;
@@ -64,6 +82,8 @@ const char *menuoptions[MENU_ITEMS] = {
     "Aspect: ",
     "Resolution: ",
     "Scaler: ",
+    "VMouse control: ",
+    "VMouse buttons: ",
     "Exit"
 };
 
@@ -77,7 +97,7 @@ void MENU_Init(int bpp)
         menu.surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, bpp, 0, 0, 0, 0);
     }
     
-    menu.selected = 0;
+    menu.selected = MENU_RESUME;
     menu.frameskip = (char*)malloc(16);
     menu.cycles = (char*)malloc(16);
     menu.core = (char*)malloc(16);
@@ -86,6 +106,8 @@ void MENU_Init(int bpp)
     menu.aspect = render.aspect;
     menu.fullresolution = (char*)malloc(16);
     menu.scaler = (char*)malloc(16);
+    menu.vmouse = (char*)malloc(16);
+    menu.vmouse_buttons = (char*)malloc(16);
     
 #if (C_DYNREC)
     dynamic_available = true;
@@ -100,6 +122,8 @@ void MENU_Deinit()
     free(menu.cpuType);
     free(menu.fullresolution);
     free(menu.scaler);
+    free(menu.vmouse);
+    free(menu.vmouse_buttons);
     SDL_FreeSurface(menu.surface);
 }
 
@@ -136,10 +160,13 @@ void MENU_UpdateMenu()
     else if(CPU_ArchitectureType == CPU_ARCHTYPE_PENTIUMSLOW) strcpy(menu.cpuType, "Pentium (Slow)");
     else strcpy(menu.cpuType, "Unknown");
 
-    if (GFX_IsFullScreenResolution())
-	strcpy(menu.fullresolution, "Desktop");
-    else
+    if (GFX_IsFullScreenResolution()) {
+	int width, height;
+	GFX_GetSupportedSize(width, height);
+	sprintf(menu.fullresolution,"%dx%d", width, height);
+    } else {
 	strcpy(menu.fullresolution, "Original");
+    }
 
     // Scaler
     switch(render.scale.op ) {
@@ -183,6 +210,22 @@ void MENU_UpdateMenu()
 	    break;
 #endif
     }
+
+    switch (VMOUSE_GetCurrentControl()) {
+	case LEFT_STICK:
+	    strcpy(menu.vmouse, "Left Stick");
+	    break;
+	case RIGHT_STICK:
+	    strcpy(menu.vmouse, "Right Stick");
+	    break;
+	case DPAD:
+	default:
+	    strcpy(menu.vmouse, "DPad");
+	    break;
+    }
+
+    // VMOUSE Number of buttons
+    sprintf(menu.vmouse_buttons, "%i", VMOUSE_GetNumberOfButtons());
 }
 
 void MENU_Toggle()
@@ -223,21 +266,25 @@ void MENU_Toggle()
 
 void MENU_MoveCursor(int direction)
 {
-    menu.selected += direction;
-    
-    if(menu.selected < 0) menu.selected = MENU_ITEMS-1;
-    if(menu.selected > MENU_ITEMS-1) menu.selected = 0;
+    if (direction < 0 && menu.selected == MENU_RESUME) {
+	menu.selected = MENU_EXIT;
+    } else if (direction > 0 && menu.selected == MENU_EXIT) {
+	menu.selected = MENU_RESUME;
+    } else {
+	int selected = menu.selected + direction;
+	menu.selected = (menu_items_t)selected;
+    }
 }
 
 void MENU_Activate()
 {
     switch(menu.selected)
     {
-        case 0: // Resume
+        case MENU_RESUME: // Resume
             MENU_Toggle();
             break;
             
-        case 2: // Cycles
+        case MENU_CYCLES: // Cycles
             
             if(CPU_AutoDetermineMode & CPU_AUTODETERMINE_CYCLES)
             { // Max
@@ -255,7 +302,7 @@ void MENU_Activate()
             
             break;
             
-        case 3: // CPU core
+        case MENU_CPU_CORE: // CPU core
             
             if(CPU_AutoDetermineMode & CPU_AUTODETERMINE_CORE) 
             {
@@ -292,7 +339,7 @@ void MENU_Activate()
             
             break;
             
-        case 4: // CPU Type
+        case MENU_CPU_TYPE: // CPU Type
             
             if(CPU_ArchitectureType == CPU_ARCHTYPE_MIXED)
             {
@@ -333,23 +380,31 @@ void MENU_Activate()
             
             break;
             
-        case 5: // Double Buffering
+        case MENU_DOUBLE_BUFFER: // Double Buffering
             menu.doublebuf = !menu.doublebuf;
             break;
 
-        case 6: // Aspect
+        case MENU_ASPECT: // Aspect
             menu.aspect = !menu.aspect;
             break;
 
-	case 7: // Fullscreen
+	case MENU_RESOLUTION: // FullScreenResolution
 	    GFX_SwitchFullScreenResolution();
             break;
 
-	case 8: // Scaler
+	case MENU_SCALER: // Scaler
 	    ChangeScalerSize(true);
             break;
+
+	case MENU_VMOUSE_CONTROL: // Virtual Mouse
+	    VMOUSE_ChangeCurrentControl();
+            break;
+
+	case MENU_VMOUSE_BUTTONS: // Virtual Mouse
+	    VMOUSE_ChangeNumberOfButtons();
+            break;
             
-        case 9: // Exit
+        case MENU_EXIT: // Exit
             throw(0);
             break;
     }
@@ -361,11 +416,11 @@ void MENU_Increase()
 {
     switch(menu.selected)
     {
-        case 1: // Frameskip
+        case MENU_FRAMESKIP: // Frameskip
             IncreaseFrameSkip(true);
             break;
             
-        case 2: // CPU cycles
+        case MENU_CYCLES: // CPU cycles
             CPU_CycleIncrease(true);
             break;
     }
@@ -377,11 +432,11 @@ void MENU_Decrease()
 {
     switch(menu.selected)
     {
-        case 1: // Frameskip
+        case MENU_FRAMESKIP: // Frameskip
             DecreaseFrameSkip(true);
             break;
             
-        case 2: // CPU cycles
+        case MENU_CYCLES: // CPU cycles
             CPU_CycleDecrease(true);
             break;
     }
@@ -500,7 +555,7 @@ void MENU_BlitDoubledSurface(SDL_Surface *source, int left, int top, SDL_Surface
 
 void MENU_Draw(SDL_Surface *surface)
 {
-    int y = (surface->h - (MENU_ITEMS * 25)) / 2 + 12;
+    int y = (surface->h - (MENU_ITEMS * 18)) / 2 + 12;
     int color = 0xFF;
     SDL_Rect dest;
     
@@ -511,13 +566,15 @@ void MENU_Draw(SDL_Surface *surface)
     for(int i=0; i<MENU_ITEMS; i++)
     {
         color = 0xFF;
+
+	menu_items_t selected = (menu_items_t)i;
         
-        if(menu.selected == i)
+        if(menu.selected == selected)
         {
             dest.x = 20;
-            dest.y = y-10;
+            dest.y = y-5;
             dest.w = 280;
-            dest.h = 25;
+            dest.h = 18;
             
             color = 0x00;
 
@@ -526,16 +583,18 @@ void MENU_Draw(SDL_Surface *surface)
         
         stringRGBA(menu.surface, 40, y, menuoptions[i], color, color, color, 0xFF);
        
-        if(i == 1) stringRGBA(menu.surface, 165, y, menu.frameskip, color, color, color, 0xFF);
-        if(i == 2) stringRGBA(menu.surface, 165, y, menu.cycles, color, color, color, 0xFF);
-        if(i == 3) stringRGBA(menu.surface, 165, y, menu.core, color, color, color, 0xFF);
-        if(i == 4) stringRGBA(menu.surface, 165, y, menu.cpuType, color, color, color, 0xFF);
-        if(i == 5) stringRGBA(menu.surface, 165, y, menu.doublebuf ? "On" : "Off", color, color, color, 0xFF);
-	if(i == 6) stringRGBA(menu.surface, 165, y, menu.aspect ? "On" : "Off", color, color, color, 0xFF);
-	if(i == 7) stringRGBA(menu.surface, 165, y, menu.fullresolution, color, color, color, 0xFF);
-	if(i == 8) stringRGBA(menu.surface, 165, y, menu.scaler, color, color, color, 0xFF);
+        if(selected == MENU_FRAMESKIP) stringRGBA(menu.surface, 165, y, menu.frameskip, color, color, color, 0xFF);
+        if(selected == MENU_CYCLES) stringRGBA(menu.surface, 165, y, menu.cycles, color, color, color, 0xFF);
+        if(selected == MENU_CPU_CORE) stringRGBA(menu.surface, 165, y, menu.core, color, color, color, 0xFF);
+        if(selected == MENU_CPU_TYPE) stringRGBA(menu.surface, 165, y, menu.cpuType, color, color, color, 0xFF);
+        if(selected == MENU_DOUBLE_BUFFER) stringRGBA(menu.surface, 165, y, menu.doublebuf ? "On" : "Off", color, color, color, 0xFF);
+	if(selected == MENU_ASPECT) stringRGBA(menu.surface, 165, y, menu.aspect ? "On" : "Off", color, color, color, 0xFF);
+	if(selected == MENU_RESOLUTION) stringRGBA(menu.surface, 165, y, menu.fullresolution, color, color, color, 0xFF);
+	if(selected == MENU_SCALER) stringRGBA(menu.surface, 165, y, menu.scaler, color, color, color, 0xFF);
+	if(selected == MENU_VMOUSE_CONTROL) stringRGBA(menu.surface, 165, y, menu.vmouse, color, color, color, 0xFF);
+	if(selected == MENU_VMOUSE_BUTTONS) stringRGBA(menu.surface, 165, y, menu.vmouse_buttons, color, color, color, 0xFF);
         
-        y += 24;
+        y += 17;
     }
 
     if(surface->h <= 240) SDL_BlitSurface(menu.surface, NULL, surface, NULL);
