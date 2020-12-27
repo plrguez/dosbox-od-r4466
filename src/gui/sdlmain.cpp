@@ -954,9 +954,11 @@ dosurface:
 		if (flags & GFX_CAN_32) bpp = 32;
 		sdl.desktop.type = SCREEN_SURFACE_DINGUX;
 
+		//Original
 		if (!sdl.desktop.full.fixed) {
 		    sdl.desktop.full.width = width;
 		    sdl.desktop.full.height = height;
+		//Desktop
 		} else {
 		    sdl.desktop.full.width = sdl.desktop.supported.width;
 		    sdl.desktop.full.height = sdl.desktop.supported.height;
@@ -2181,9 +2183,8 @@ static void GUI_StartUp(Section * sec) {
 		if (sdl.surface == NULL) E_Exit("Could not initialize video: %s",SDL_GetError());
 		sdl.desktop.bpp=sdl.surface->format->BitsPerPixel;
 		GFX_Stop();
+		sdl.desktop.fullscreen = true; // Fixed fullscreen
 		if(!sdl.desktop.full.fixed) { // i.e. fullresolution=original
-			sdl.desktop.fullscreen = true;
-			sdl.desktop.full.fixed = true;
 			sdl.desktop.full.width = sdl.desktop.supported.width;
 			sdl.desktop.full.height = sdl.desktop.supported.height;
 		}
@@ -3073,4 +3074,8 @@ void GFX_GetSupportedSize(int &width, int &height) {
 
 int GFX_GetScaleSize( void ) {
 	return sdl.desktop.supported.width / 320;
+}
+
+int GFX_GetCurrentScaleSize( void ) {
+	return sdl.surface->w / 320;
 }

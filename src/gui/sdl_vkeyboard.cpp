@@ -115,7 +115,6 @@ struct VKEYB_Block {
 	bool shift;
 	bool lctrl;
 	bool move;
-	int scale;
 };
 
 static VKEYB_Block vkeyb;
@@ -163,11 +162,10 @@ static SDL_Surface * VKEYB_Scale2x(SDL_Surface * source)
     }
 }
 
-int GFX_GetScaleSize(); // in sdlmain.cpp
+int GFX_GetCurrentScaleSize(); // in sdlmain.cpp
 
 void VKEYB_Init(int bpp)
 {
-	vkeyb.scale = GFX_GetScaleSize();
 	if(!vkeyb.surface) {
 		vkeyb.surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 287, 80, bpp, 0, 0, 0, 0);
 	}
@@ -385,10 +383,11 @@ void VKEYB_BlitVkeyboard(SDL_Surface *surface)
 		}
 
 	SDL_Rect dest;
-	dest.x = vkeyb.x*vkeyb.scale;
-	dest.y = vkeyb.y*vkeyb.scale;
+	int scale = GFX_GetCurrentScaleSize();
+	dest.x = vkeyb.x*scale;
+	dest.y = vkeyb.y*scale;
 	
-	if (vkeyb.scale>1) {
+	if (scale>1) {
 	    SDL_Surface * scaled = VKEYB_Scale2x(vkeyb.surface);
 	    SDL_BlitSurface(scaled, 0, surface, &dest);
 	    SDL_FreeSurface(scaled);
@@ -402,8 +401,8 @@ void VKEYB_CleanVkeyboard(SDL_Surface *surface)
 	SDL_Rect dest;
 	dest.x = vkeyb.x;
 	dest.y = vkeyb.y;
-	dest.w = 287*vkeyb.scale;
-	dest.h = 80*vkeyb.scale;
+	dest.w = 287*GFX_GetCurrentScaleSize();
+	dest.h = 80*GFX_GetCurrentScaleSize();
 	SDL_FillRect(surface, &dest, 0);
 	vkeyb_last = false;
 }

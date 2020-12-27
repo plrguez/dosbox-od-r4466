@@ -78,6 +78,7 @@ void GFX_SwitchDoubleBuffering(void);
 void GFX_LosingFocus(void);
 void GFX_GetSupportedSize(int &width, int &height);
  int GFX_GetScaleSize( void );
+ int GFX_GetCurrentScaleSize( void );
 
 #if defined (WIN32)
 bool GFX_SDLUsingWinDIB(void);

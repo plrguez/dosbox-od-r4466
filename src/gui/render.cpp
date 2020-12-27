@@ -598,12 +598,6 @@ void ChangeScalerSize(bool pressed) {
 	}
 	//RENDER_CallBack( GFX_CallBackReset );
 }
-static void ChangeAspectRatio(bool pressed) {
-	if (!pressed)
-		return;
-	render.aspect != render.aspect;
-	RENDER_CallBack( GFX_CallBackReset );
-}
 
 extern int GFX_GetScaleSize( void ); // in sdlmain()
 
@@ -695,7 +689,8 @@ void RENDER_Init(Section * sec) {
 		section->HandleInputline(std::string("scaler=") + cline);
 	} else if (control->cmdline->FindString("-forcescaler",cline,true)) {
 		section->HandleInputline(std::string("scaler=") + cline + " forced");
-	} else if ( GFX_GetScaleSize() > 1 ) {
+	// ScaleSize > 1 (RG350M) and not Original resolution ==> Set scaler 2x
+	} else if ( GFX_GetScaleSize() > 1 && GFX_IsFullScreenResolution() ) {
 		section->HandleInputline(std::string("scaler=normal2x"));
 	}
 	   

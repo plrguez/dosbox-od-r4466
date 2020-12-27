@@ -104,7 +104,7 @@ void MENU_Init(int bpp)
     menu.cpuType = (char*)malloc(16);
     menu.doublebuf = GFX_IsDoubleBuffering();
     menu.aspect = render.aspect;
-    menu.fullresolution = (char*)malloc(16);
+    menu.fullresolution = (char*)malloc(17);
     menu.scaler = (char*)malloc(16);
     menu.vmouse = (char*)malloc(16);
     menu.vmouse_buttons = (char*)malloc(16);
@@ -163,7 +163,7 @@ void MENU_UpdateMenu()
     if (GFX_IsFullScreenResolution()) {
 	int width, height;
 	GFX_GetSupportedSize(width, height);
-	sprintf(menu.fullresolution,"%dx%d", width, height);
+	sprintf(menu.fullresolution,"Desktop(%dx%d)", width, height);
     } else {
 	strcpy(menu.fullresolution, "Original");
     }
