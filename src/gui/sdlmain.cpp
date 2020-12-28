@@ -526,9 +526,9 @@ static void PauseDOSBox(bool pressed) {
 	SDL_FreeSurface(sdl.surface);
 
 #ifdef SDL_TRIPLEBUF
-	sdl.surface = SDL_SetVideoMode_Wrap(320, 240, 16, (sdl.desktop.doublebuf ? SDL_TRIPLEBUF : 0) | SDL_HWSURFACE);
+	sdl.surface = SDL_SetVideoMode_Wrap(sdl.desktop.supported.width, sdl.desktop.supported.height, 16, (sdl.desktop.doublebuf ? SDL_TRIPLEBUF : 0) | SDL_HWSURFACE);
 #else
-	sdl.surface = SDL_SetVideoMode_Wrap(sdl.desktop.supported.widthh, sdl.desktop.supported.height, 16, (sdl.desktop.doublebuf ? SDL_DOUBLEBUF : 0) | SDL_HWSURFACE);
+	sdl.surface = SDL_SetVideoMode_Wrap(sdl.desktop.supported.width, sdl.desktop.supported.height, 16, (sdl.desktop.doublebuf ? SDL_DOUBLEBUF : 0) | SDL_HWSURFACE);
 #endif
 
 	// Draw menu
