@@ -49,10 +49,12 @@ typedef enum {
     MENU_SCALER,
     MENU_VMOUSE_CONTROL,
     MENU_VMOUSE_BUTTONS,
+    MENU_VMOUSE_SWAP_BUTTONS,
+    MENU_VMOUSE_SPEED,
     MENU_EXIT,
 } menu_items_t;
 
-#define MENU_ITEMS 12
+#define MENU_ITEMS 14
 
 struct MENU_Block 
 {
@@ -68,6 +70,8 @@ struct MENU_Block
     char *scaler;
     char *vmouse;
     char *vmouse_buttons;
+    char *vmouse_speed;
+    bool vmouse_swapped;
 };
 
 static MENU_Block menu;
@@ -84,6 +88,8 @@ const char *menuoptions[MENU_ITEMS] = {
     "Scaler: ",
     "VMouse control: ",
     "VMouse buttons: ",
+    "VMouse swap: ",
+    "VMouse speed: ",
     "Exit"
 };
 
@@ -108,6 +114,7 @@ void MENU_Init(int bpp)
     menu.scaler = (char*)malloc(16);
     menu.vmouse = (char*)malloc(16);
     menu.vmouse_buttons = (char*)malloc(16);
+    menu.vmouse_speed = (char*)malloc(5);
     
 #if (C_DYNREC)
     dynamic_available = true;
@@ -124,6 +131,7 @@ void MENU_Deinit()
     free(menu.scaler);
     free(menu.vmouse);
     free(menu.vmouse_buttons);
+    free(menu.vmouse_speed);
     SDL_FreeSurface(menu.surface);
 }
 
@@ -212,20 +220,26 @@ void MENU_UpdateMenu()
     }
 
     switch (VMOUSE_GetCurrentControl()) {
-	case LEFT_STICK:
+	case VM_LEFT_STICK:
 	    strcpy(menu.vmouse, "Left Stick");
 	    break;
-	case RIGHT_STICK:
+	case VM_RIGHT_STICK:
 	    strcpy(menu.vmouse, "Right Stick");
 	    break;
-	case DPAD:
+	case VM_DPAD:
 	default:
 	    strcpy(menu.vmouse, "DPad");
 	    break;
     }
 
     // VMOUSE Number of buttons
-    sprintf(menu.vmouse_buttons, "%i", VMOUSE_GetNumberOfButtons());
+    strcpy(menu.vmouse_buttons,VMOUSE_GetNumberOfButtons());
+
+    // VMOUSE Speed
+    sprintf(menu.vmouse_speed, "%.1f", VMOUSE_GetSpeed());
+
+    // VMOUSE Swapped buttons
+    menu.vmouse_swapped = VMOUSE_ButtonsSwapped();
 }
 
 void MENU_Toggle()
@@ -257,6 +271,7 @@ void MENU_Toggle()
     {
         menu.doublebuf = GFX_IsDoubleBuffering();
 	menu.aspect = render.aspect;
+	menu.vmouse_swapped = VMOUSE_ButtonsSwapped();
     }
     
     for(int i=0; i<1024; i++) keystates[i] = false;
@@ -397,12 +412,16 @@ void MENU_Activate()
             break;
 
 	case MENU_VMOUSE_CONTROL: // Virtual Mouse
-	    VMOUSE_ChangeCurrentControl();
+	    VMOUSE_ChangeCurrentControl(true);
             break;
 
 	case MENU_VMOUSE_BUTTONS: // Virtual Mouse
-	    VMOUSE_ChangeNumberOfButtons();
+	    VMOUSE_ChangeNumberOfButtons(true);
             break;
+
+	case MENU_VMOUSE_SWAP_BUTTONS:
+	    VMOUSE_SwapButtons(true);
+	    break;
             
         case MENU_EXIT: // Exit
             throw(0);
@@ -423,6 +442,10 @@ void MENU_Increase()
         case MENU_CYCLES: // CPU cycles
             CPU_CycleIncrease(true);
             break;
+
+        case MENU_VMOUSE_SPEED: // VMOUSE Speed
+            VMOUSE_IncreaseSpeed(true);
+            break;
     }
     
     MENU_UpdateMenu();
@@ -438,6 +461,11 @@ void MENU_Decrease()
             
         case MENU_CYCLES: // CPU cycles
             CPU_CycleDecrease(true);
+            break;
+
+
+        case MENU_VMOUSE_SPEED: // VMOUSE Speed
+            VMOUSE_DecreaseSpeed(true);
             break;
     }
     
@@ -593,6 +621,8 @@ void MENU_Draw(SDL_Surface *surface)
 	if(selected == MENU_SCALER) stringRGBA(menu.surface, 165, y, menu.scaler, color, color, color, 0xFF);
 	if(selected == MENU_VMOUSE_CONTROL) stringRGBA(menu.surface, 165, y, menu.vmouse, color, color, color, 0xFF);
 	if(selected == MENU_VMOUSE_BUTTONS) stringRGBA(menu.surface, 165, y, menu.vmouse_buttons, color, color, color, 0xFF);
+	if(selected == MENU_VMOUSE_SPEED) stringRGBA(menu.surface, 165, y, menu.vmouse_speed, color, color, color, 0xFF);
+	if(selected == MENU_VMOUSE_SWAP_BUTTONS) stringRGBA(menu.surface, 165, y, menu.vmouse_swapped ? "On" : "Off", color, color, color, 0xFF);
         
         y += 17;
     }
