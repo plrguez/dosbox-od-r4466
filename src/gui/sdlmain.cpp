@@ -955,7 +955,7 @@ dosurface:
 		sdl.desktop.type = SCREEN_SURFACE_DINGUX;
 
 		//Original
-		if (!sdl.desktop.full.fixed) {
+		if (!GFX_IsDesktopScreenResolution()) {
 		    sdl.desktop.full.width = width;
 		    sdl.desktop.full.height = height;
 		//Desktop
@@ -974,7 +974,7 @@ dosurface:
 						 ( (flags & GFX_CAN_RANDOM) ? SDL_SWSURFACE : SDL_HWSURFACE) |
 			                           (sdl.desktop.doublebuf ? SDL_TRIPLEBUF : 0) );
 
-		sdl.blit.buffer=SDL_CreateRGBSurface(SDL_SWSURFACE, // for mixing menu and game screen
+		sdl.blit.buffer=SDL_CreateRGBSurface(SDL_HWSURFACE, // for mixing menu and game screen
 									sdl.desktop.full.width,
 									sdl.desktop.full.height,
 									sdl.desktop.bpp,
@@ -986,12 +986,12 @@ dosurface:
 			sdl.clip.h=height;
 			sdl.clip.x=(Sint16)((sdl.desktop.full.width-width)/2);
 			sdl.clip.y=(Sint16)((sdl.desktop.full.height-height)/2);
-			sdl.blit.surface=SDL_CreateRGBSurface(SDL_SWSURFACE,width,height,bpp,0,0,0,0);
+			sdl.blit.surface=SDL_CreateRGBSurface(SDL_HWSURFACE,width,height,bpp,0,0,0,0);
 		} else {
 			sdl.clip.w=0; sdl.clip.h=0; sdl.clip.x=0; sdl.clip.y=0;
-			sdl.blit.surface=SDL_CreateRGBSurface(SDL_SWSURFACE,width,height,bpp,0,0,0,0);
+			sdl.blit.surface=SDL_CreateRGBSurface(SDL_HWSURFACE,width,height,bpp,0,0,0,0);
 
-			if (sdl.desktop.supported.width != 640 && sdl.desktop.full.fixed) {
+			if (GFX_GetScaleSize() == 1 && GFX_IsDesktopScreenResolution()) {
 			    if(width == 640 && height == 400)
 				GFX_PDownscale = (bpp == 16 ? &GFX_Downscale_640x400_to_320x240_16 : &GFX_Downscale_640x400_to_320x240_32);
 			    else if(width == 640 && height == 480)
@@ -1382,11 +1382,11 @@ void sticky_keys(bool restore){
 }
 #endif
 
-bool GFX_IsFullScreenResolution(void) {
+bool GFX_IsDesktopScreenResolution(void) {
     return sdl.desktop.full.fixed;
 }
 
-void GFX_SwitchFullScreenResolution(void) {
+void GFX_SwitchDesktopScreenResolution(void) {
     sdl.desktop.full.fixed=!sdl.desktop.full.fixed;
     if (sdl.desktop.full.fixed) {
 	sdl.desktop.full.height = sdl.desktop.supported.height;

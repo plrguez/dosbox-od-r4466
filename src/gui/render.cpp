@@ -690,7 +690,7 @@ void RENDER_Init(Section * sec) {
 	} else if (control->cmdline->FindString("-forcescaler",cline,true)) {
 		section->HandleInputline(std::string("scaler=") + cline + " forced");
 	// ScaleSize > 1 (RG350M) and not Original resolution ==> Set scaler 2x
-	} else if ( GFX_GetScaleSize() > 1 && GFX_IsFullScreenResolution() ) {
+	} else if ( GFX_GetScaleSize() > 1 && GFX_IsDesktopScreenResolution() ) {
 		section->HandleInputline(std::string("scaler=normal2x"));
 	}
 	   

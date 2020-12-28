@@ -160,7 +160,7 @@ void MENU_UpdateMenu()
     else if(CPU_ArchitectureType == CPU_ARCHTYPE_PENTIUMSLOW) strcpy(menu.cpuType, "Pentium (Slow)");
     else strcpy(menu.cpuType, "Unknown");
 
-    if (GFX_IsFullScreenResolution()) {
+    if (GFX_IsDesktopScreenResolution()) {
 	int width, height;
 	GFX_GetSupportedSize(width, height);
 	sprintf(menu.fullresolution,"Desktop(%dx%d)", width, height);
@@ -389,7 +389,7 @@ void MENU_Activate()
             break;
 
 	case MENU_RESOLUTION: // FullScreenResolution
-	    GFX_SwitchFullScreenResolution();
+	    GFX_SwitchDesktopScreenResolution();
             break;
 
 	case MENU_SCALER: // Scaler
