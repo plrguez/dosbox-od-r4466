@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <sys/types.h>
+#include <math.h>
 #ifdef WIN32
 #include <signal.h>
 #include <process.h>
@@ -960,10 +961,10 @@ dosurface:
 		    sdl.desktop.full.height = height;
 		//Desktop
 		} else {
-		    sdl.desktop.full.width = sdl.desktop.supported.width/scalex;
+		    sdl.desktop.full.width = ceil(sdl.desktop.supported.width/scalex);
 		    if (sdl.desktop.full.width > sdl.desktop.supported.width)
 			sdl.desktop.full.width = sdl.desktop.supported.width;
-		    sdl.desktop.full.height = sdl.desktop.supported.height/scaley;
+		    sdl.desktop.full.height = ceil(sdl.desktop.supported.height/scaley);
 		    if (sdl.desktop.full.height > sdl.desktop.supported.height)
 			sdl.desktop.full.height = sdl.desktop.supported.height;
 		}
