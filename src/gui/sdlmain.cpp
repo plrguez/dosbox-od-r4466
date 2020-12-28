@@ -960,8 +960,12 @@ dosurface:
 		    sdl.desktop.full.height = height;
 		//Desktop
 		} else {
-		    sdl.desktop.full.width = sdl.desktop.supported.width;
-		    sdl.desktop.full.height = sdl.desktop.supported.height;
+		    sdl.desktop.full.width = sdl.desktop.supported.width/scalex;
+		    if (sdl.desktop.full.width > sdl.desktop.supported.width)
+			sdl.desktop.full.width = sdl.desktop.supported.width;
+		    sdl.desktop.full.height = sdl.desktop.supported.height/scaley;
+		    if (sdl.desktop.full.height > sdl.desktop.supported.height)
+			sdl.desktop.full.height = sdl.desktop.supported.height;
 		}
 
 		sdl.surface=SDL_SetVideoMode_Wrap(sdl.desktop.full.width,
@@ -987,7 +991,7 @@ dosurface:
 			sdl.clip.w=0; sdl.clip.h=0; sdl.clip.x=0; sdl.clip.y=0;
 			sdl.blit.surface=SDL_CreateRGBSurface(SDL_SWSURFACE,width,height,bpp,0,0,0,0);
 
-			if (sdl.desktop.supported.height != 640 && sdl.desktop.full.fixed) {
+			if (sdl.desktop.supported.width != 640 && sdl.desktop.full.fixed) {
 			    if(width == 640 && height == 400)
 				GFX_PDownscale = (bpp == 16 ? &GFX_Downscale_640x400_to_320x240_16 : &GFX_Downscale_640x400_to_320x240_32);
 			    else if(width == 640 && height == 480)
