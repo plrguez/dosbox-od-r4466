@@ -1352,7 +1352,7 @@ static void CaptureMouse(bool pressed) {
 	GFX_CaptureMouse();
 }
 
-static void MenuStart(bool pressed)
+void MenuStart(bool pressed)
 {
     if (!pressed)
 	return;
@@ -2206,7 +2206,7 @@ static void GUI_StartUp(Section * sec) {
 	MAPPER_AddHandler(CaptureMouse,MK_f10,MMOD1,"capmouse","Cap Mouse");
 	//MAPPER_AddHandler(SwitchFullScreen,MK_return,MMOD2,"fullscr","Fullscreen");
 	MAPPER_AddHandler(Restart,MK_home,MMOD1|MMOD2,"restart","Restart");
-	MAPPER_AddHandler(MenuStart,MK_home,0,"menu","Menu"); // L3+R3
+	MAPPER_AddHandler(MenuStart,MK_escape,MMOD1,"menu","Menu"); // L1+Select
 	MAPPER_AddHandler(&VKEYB_Toggle,MK_escape,MMOD2,"vkeyborad","VirtualKeyb");
 	MAPPER_AddHandler(&VMOUSE_Toggle,MK_return,MMOD2,"vmouse","VirtualMouse");
 #if C_DEBUG
@@ -3083,4 +3083,10 @@ int GFX_GetScaleSize( void ) {
 
 int GFX_GetCurrentScaleSize( void ) {
 	return sdl.surface->w / 320;
+}
+
+void GFX_GetMouseDetails(SDL_Rect *clip, int *xsensivity, int *ysensivity) {
+    *clip = sdl.clip;
+    *xsensivity = sdl.mouse.xsensitivity;
+    *ysensivity = sdl.mouse.ysensitivity;
 }

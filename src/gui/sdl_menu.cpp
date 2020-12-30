@@ -52,9 +52,14 @@ typedef enum {
     MENU_VMOUSE_SWAP_BUTTONS,
     MENU_VMOUSE_SPEED,
     MENU_EXIT,
+    MENU_LAST,
 } menu_items_t;
 
-#define MENU_ITEMS 14
+#define MENU_ITEMS MENU_LAST
+#define MENU_COL_OPTION 30
+#define MENU_COL_VALUE  170
+#define MENU_PRINT_VALUE(option,value) \
+if(selected == option) stringRGBA(menu.surface, MENU_COL_VALUE, y, value, color, color, color, 0xFF);
 
 struct MENU_Block 
 {
@@ -88,7 +93,7 @@ const char *menuoptions[MENU_ITEMS] = {
     "Scaler: ",
     "VMouse control: ",
     "VMouse buttons: ",
-    "VMouse swap: ",
+    "VMouse swap l/r: ",
     "VMouse speed: ",
     "Exit"
 };
@@ -236,7 +241,7 @@ void MENU_UpdateMenu()
     strcpy(menu.vmouse_buttons,VMOUSE_GetNumberOfButtons());
 
     // VMOUSE Speed
-    sprintf(menu.vmouse_speed, "%.1f", VMOUSE_GetSpeed());
+    sprintf(menu.vmouse_speed, "%.2f", VMOUSE_GetSpeed());
 
     // VMOUSE Swapped buttons
     menu.vmouse_swapped = VMOUSE_ButtonsSwapped();
@@ -473,14 +478,22 @@ void MENU_Decrease()
 }
 
 void GFX_ForceUpdate(); // in sdlmain.cpp
+extern void MenuStart(bool pressed);
 
 int MENU_CheckEvent(SDL_Event *event)
 {
     bool keystate = (event->type == SDL_KEYDOWN) ? true : false;
     int sym = event->key.keysym.sym;
-    
+
+    // Enable/Disbale Menu
+    if(keystate && sym == SDLK_HOME)
+    {
+        MenuStart(true);
+	return 1;
+    }
+
     if(!menu_active) return 0;
-    
+
     if(keystate && !keystates[sym])
     {
         if(sym == SDLK_UP) MENU_MoveCursor(-1);
@@ -609,21 +622,21 @@ void MENU_Draw(SDL_Surface *surface)
             SDL_FillRect(menu.surface, &dest, SDL_MapRGB(menu.surface->format, 0xFF, 0xFF, 0xFF));
         }
         
-        stringRGBA(menu.surface, 40, y, menuoptions[i], color, color, color, 0xFF);
-       
-        if(selected == MENU_FRAMESKIP) stringRGBA(menu.surface, 165, y, menu.frameskip, color, color, color, 0xFF);
-        if(selected == MENU_CYCLES) stringRGBA(menu.surface, 165, y, menu.cycles, color, color, color, 0xFF);
-        if(selected == MENU_CPU_CORE) stringRGBA(menu.surface, 165, y, menu.core, color, color, color, 0xFF);
-        if(selected == MENU_CPU_TYPE) stringRGBA(menu.surface, 165, y, menu.cpuType, color, color, color, 0xFF);
-        if(selected == MENU_DOUBLE_BUFFER) stringRGBA(menu.surface, 165, y, menu.doublebuf ? "On" : "Off", color, color, color, 0xFF);
-	if(selected == MENU_ASPECT) stringRGBA(menu.surface, 165, y, menu.aspect ? "On" : "Off", color, color, color, 0xFF);
-	if(selected == MENU_RESOLUTION) stringRGBA(menu.surface, 165, y, menu.fullresolution, color, color, color, 0xFF);
-	if(selected == MENU_SCALER) stringRGBA(menu.surface, 165, y, menu.scaler, color, color, color, 0xFF);
-	if(selected == MENU_VMOUSE_CONTROL) stringRGBA(menu.surface, 165, y, menu.vmouse, color, color, color, 0xFF);
-	if(selected == MENU_VMOUSE_BUTTONS) stringRGBA(menu.surface, 165, y, menu.vmouse_buttons, color, color, color, 0xFF);
-	if(selected == MENU_VMOUSE_SPEED) stringRGBA(menu.surface, 165, y, menu.vmouse_speed, color, color, color, 0xFF);
-	if(selected == MENU_VMOUSE_SWAP_BUTTONS) stringRGBA(menu.surface, 165, y, menu.vmouse_swapped ? "On" : "Off", color, color, color, 0xFF);
-        
+        stringRGBA(menu.surface, MENU_COL_OPTION, y, menuoptions[i], color, color, color, 0xFF);
+
+	MENU_PRINT_VALUE(MENU_FRAMESKIP,menu.frameskip);
+	MENU_PRINT_VALUE(MENU_CYCLES,menu.cycles);
+	MENU_PRINT_VALUE(MENU_CPU_CORE,menu.core);
+	MENU_PRINT_VALUE(MENU_CPU_TYPE,menu.cpuType);
+	MENU_PRINT_VALUE(MENU_DOUBLE_BUFFER,menu.doublebuf ? "On" : "Off");
+	MENU_PRINT_VALUE(MENU_ASPECT,menu.aspect ? "On" : "Off");
+	MENU_PRINT_VALUE(MENU_RESOLUTION,menu.fullresolution);
+	MENU_PRINT_VALUE(MENU_SCALER,menu.scaler);
+	MENU_PRINT_VALUE(MENU_VMOUSE_CONTROL,menu.vmouse);
+	MENU_PRINT_VALUE(MENU_VMOUSE_BUTTONS,menu.vmouse_buttons);
+	MENU_PRINT_VALUE(MENU_VMOUSE_SPEED,menu.vmouse_speed);
+	MENU_PRINT_VALUE(MENU_VMOUSE_SWAP_BUTTONS,menu.vmouse_swapped ? "On" : "Off");
+	
         y += 17;
     }
 

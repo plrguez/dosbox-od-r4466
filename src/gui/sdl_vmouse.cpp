@@ -9,8 +9,6 @@
 #include "sdl_vmouse.h"
 
 #define MOUSE_SENSIVITY 4
-#define MAX_MOUSE_ACCELERATION_X (MOUSE_SENSIVITY * 2)
-#define MAX_MOUSE_ACCELERATION_Y MOUSE_SENSIVITY
 
 typedef struct vmouse_buttons {
     vmouse_button_layout_t layout;
@@ -82,7 +80,7 @@ void VMOUSE_Init(int bpp)
     vmouse.accely = 0.0;
     vmouse.prev_accelx = 0.0;
     vmouse.prev_accely = 0.0;
-    vmouse.speed = 1;
+    vmouse.speed = 2.0;
     
     vmouse.left = false;
     vmouse.right = false;
@@ -187,13 +185,13 @@ bool VMOUSE_ButtonsSwapped(void)
 void VMOUSE_IncreaseSpeed(bool pressed)
 {
     if (!pressed) return;
-    if (vmouse.speed < 5.0) vmouse.speed+=0.5;
+    if (vmouse.speed < 10.0) vmouse.speed+=0.25;
 }
 
 void VMOUSE_DecreaseSpeed(bool pressed)
 {
     if (!pressed) return;
-    if (vmouse.speed > 0.5) vmouse.speed-=0.5;
+    if (vmouse.speed > 0.25) vmouse.speed-=0.25;
 }
 
 double VMOUSE_GetSpeed(void)
@@ -235,8 +233,8 @@ bool VMOUSE_CheckAxisEvent(void) {
     Sint16 xaxis_pos = SDL_JoystickGetAxis(vmouse.sdl_joystick,axis++);
     Sint16 yaxis_pos = SDL_JoystickGetAxis(vmouse.sdl_joystick,axis);
 
-    vmouse.accelx = (xaxis_pos/32768.0)*MAX_MOUSE_ACCELERATION_X*vmouse.speed;
-    vmouse.accely = (yaxis_pos/32768.0)*MAX_MOUSE_ACCELERATION_Y*vmouse.speed;
+    vmouse.accelx = (xaxis_pos/32768.0)*MOUSE_SENSIVITY*vmouse.speed;
+    vmouse.accely = (yaxis_pos/32768.0)*MOUSE_SENSIVITY*vmouse.speed;
 
     if (vmouse.prev_accelx != vmouse.accelx || vmouse.prev_accely != vmouse.accely) {
 	vmouse.prev_accelx = vmouse.accelx;
@@ -421,16 +419,26 @@ SDL_Surface* load_icon2x()
     return vmouse.icon2x;
 }
 
+extern void GFX_GetMouseDetails(SDL_Rect *clip, int *xsensivity, int *ysensivity); // in sdlmain.cpp
+
 void VMOUSE_BlitVMouse(SDL_Surface *surface)
 {
     SDL_Rect position;
+    SDL_Rect clip;
+    int xsensitivity, ysensitivity;
     
     if(!vmouse.enabled) return;
 
     vmouse.x += vmouse.accelx;
     vmouse.y += vmouse.accely;
+
+    GFX_GetMouseDetails(&clip, &xsensitivity, &ysensitivity);
     
-    Mouse_CursorMoved(vmouse.accelx, vmouse.accely, vmouse.x, vmouse.y, true);
+    Mouse_CursorMoved((float)vmouse.accelx*xsensitivity/100.0f,
+		    (float)vmouse.accely*ysensitivity/100.0f,
+		    (float)(vmouse.x-clip.x)/(clip.w-1)*xsensitivity/100.0f,
+		    (float)(vmouse.y-clip.y)/(clip.h-1)*ysensitivity/100.0f,
+		    true);
     
     if(!Mouse_IsHidden())
     {
@@ -456,5 +464,4 @@ void VMOUSE_CleanVMouse(SDL_Surface *surface)
     if(!vmouse.enabled) return;
     CalculateIconPosition(surface, position);
     SDL_BlitSurface(vmouse.back, NULL, surface, &position);
-//    SDL_FillRect(surface, &position, 0);
 }
