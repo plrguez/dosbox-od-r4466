@@ -112,7 +112,7 @@ void MENU_Init(int bpp)
     {
 	int width, height;
 	GFX_GetSupportedSize(width, height);
-        menu.surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, bpp, 0, 0, 0, 0);
+        menu.surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, bpp, 0, 0, 0, 0);
     }
     
     menu.selected = MENU_RESUME;

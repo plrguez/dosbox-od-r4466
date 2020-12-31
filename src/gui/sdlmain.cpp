@@ -526,9 +526,9 @@ static void PauseDOSBox(bool pressed) {
 	SDL_FreeSurface(sdl.surface);
 
 #ifdef SDL_TRIPLEBUF
-	sdl.surface = SDL_SetVideoMode_Wrap(sdl.desktop.supported.width, sdl.desktop.supported.height, 16, (sdl.desktop.doublebuf ? SDL_TRIPLEBUF : 0) | SDL_HWSURFACE);
+	sdl.surface = SDL_SetVideoMode_Wrap(320, 240, 16, (sdl.desktop.doublebuf ? SDL_TRIPLEBUF : 0) | SDL_HWSURFACE);
 #else
-	sdl.surface = SDL_SetVideoMode_Wrap(sdl.desktop.supported.width, sdl.desktop.supported.height, 16, (sdl.desktop.doublebuf ? SDL_DOUBLEBUF : 0) | SDL_HWSURFACE);
+	sdl.surface = SDL_SetVideoMode_Wrap(320, 240, 16, (sdl.desktop.doublebuf ? SDL_DOUBLEBUF : 0) | SDL_HWSURFACE);
 #endif
 
 	// Draw menu
@@ -974,6 +974,27 @@ dosurface:
 						  sdl.desktop.bpp,
 						 ( (flags & GFX_CAN_RANDOM) ? SDL_SWSURFACE : SDL_HWSURFACE) |
 			                           (sdl.desktop.doublebuf ? SDL_TRIPLEBUF : 0) );
+		
+		// Not supported original resolution. Fallback to desktop resolution.
+		if (sdl.surface == NULL && !GFX_IsDesktopScreenResolution()) {
+		    if (width == 320 && height < 200) {
+			sdl.desktop.full.height = 200;
+		    } else if (width == 320 && height > 200 && height < 240) {
+			sdl.desktop.full.height = 240;
+		    } else if (width == 640 && height < 400) {
+			sdl.desktop.full.height = 400;
+		    } else if (width == 640 && height > 400 && height < 480) {
+			sdl.desktop.full.height = 480;
+		    } else {
+			sdl.desktop.full.width = sdl.desktop.supported.width;
+			sdl.desktop.full.height = sdl.desktop.supported.height;
+		    }
+		    sdl.surface=SDL_SetVideoMode_Wrap(sdl.desktop.full.width,
+						      sdl.desktop.full.height,
+						      sdl.desktop.bpp,
+						    ( (flags & GFX_CAN_RANDOM) ? SDL_SWSURFACE : SDL_HWSURFACE) |
+							(sdl.desktop.doublebuf ? SDL_TRIPLEBUF : 0) );
+		}
 
 		sdl.blit.buffer=SDL_CreateRGBSurface(SDL_HWSURFACE, // for mixing menu and game screen
 									sdl.desktop.full.width,
