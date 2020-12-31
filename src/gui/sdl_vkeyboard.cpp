@@ -175,8 +175,6 @@ void VKEYB_Init(int bpp)
 	vkeyb.image = IMG_LoadBMP_RW(SDL_RWFromMem(vkeyboard_image, sizeof(vkeyboard_image))/*SDL_RWFromFile("keyboard.bmp", "rb")*/);
 	if(!vkeyb.image) printf("err %s\n", IMG_GetError());
 
-	gfxPrimitivesSetFont(keyfont, 8, 8);
-
 	vkeyb.cursor.x = 2;
 	vkeyb.cursor.y = 1;
 	vkeyb.cursor.w = 8;
@@ -222,7 +220,10 @@ void VKEYB_Toggle(bool pressed)
     if (!pressed) return;
 
     vkeyb_active ^= 1;
-    if (!vkeyb_active) vkeyb_last = true;
+    if (!vkeyb_active) 
+	vkeyb_last = true;
+    else
+	gfxPrimitivesSetFont(keyfont, 8, 8);
     GFX_ForceUpdate();
 }
 
@@ -233,10 +234,8 @@ int VKEYB_CheckEvent(SDL_Event *event)
 	bool keystate = (event->type == SDL_KEYDOWN) ? true : false;
 
 	if(keystate && event->key.keysym.sym == SDLK_PAGEUP) {
-		vkeyb_active ^= 1;
-		if(!vkeyb_active) vkeyb_last = true;
+		VKEYB_Toggle(true);
 		ret = 0;
-		update_screen = true;
 		goto _exit;
 	}
 

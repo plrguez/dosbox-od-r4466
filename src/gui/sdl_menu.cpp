@@ -34,7 +34,6 @@ extern Bitu CPU_extflags_toggle;
 
 bool dynamic_available = false;
 bool menu_active = false;
-bool menu_last = false;
 bool keystates[1024];
 
 typedef enum {
@@ -81,23 +80,31 @@ struct MENU_Block
 
 static MENU_Block menu;
 
-const char *menuoptions[MENU_ITEMS] = {
-    "Resume",
-    "Frameskip: ",
-    "Cycles: ",
-    "CPU Core: ",
-    "CPU Type: ",
-    "Triple Buffer: ",
-    "Aspect: ",
-    "Resolution: ",
-    "Scaler: ",
-    "VMouse control: ",
-    "VMouse buttons: ",
-    "VMouse swap l/r: ",
-    "VMouse speed: ",
-    "Exit"
-};
+typedef struct menuoption {
+    menu_items_t option;
+    const char * text;
+    bool print_value;
+    bool on_off;
+    void *value;
+} menuoption_t;
 
+menuoption_t menuoptions[MENU_ITEMS+1] = {
+    { MENU_RESUME, "Resume", false, false, NULL },
+    { MENU_FRAMESKIP, "Frameskip: ", true, false, NULL },
+    { MENU_CYCLES, "Cycles: ", true, false, NULL },
+    { MENU_CPU_CORE, "CPU Core: ", true, false, NULL },
+    { MENU_CPU_TYPE, "CPU Type: ", true, false, NULL },
+    { MENU_DOUBLE_BUFFER, "Triple Buffer: ", true, true, NULL },
+    { MENU_ASPECT, "Aspect: ", true, true, NULL },
+    { MENU_RESOLUTION, "Resolution: ", true, false, NULL },
+    { MENU_SCALER, "Scaler: ", true, false, NULL },
+    { MENU_VMOUSE_CONTROL, "VMouse control: ", true, false, NULL },
+    { MENU_VMOUSE_BUTTONS, "VMouse buttons: ", true, false, NULL },
+    { MENU_VMOUSE_SWAP_BUTTONS, "VMouse swap l/r: ", true, true, NULL },
+    { MENU_VMOUSE_SPEED, "VMouse speed: ", true, false, NULL },
+    { MENU_EXIT, "Exit", false, false, NULL },
+    { MENU_LAST, NULL, false, false, NULL },
+};
 
 void MENU_Init(int bpp)
 {
@@ -120,6 +127,19 @@ void MENU_Init(int bpp)
     menu.vmouse = (char*)malloc(16);
     menu.vmouse_buttons = (char*)malloc(16);
     menu.vmouse_speed = (char*)malloc(5);
+
+    menuoptions[MENU_FRAMESKIP].value = &menu.frameskip;
+    menuoptions[MENU_CYCLES].value = &menu.cycles;
+    menuoptions[MENU_CPU_CORE].value = &menu.core;
+    menuoptions[MENU_CPU_TYPE].value = &menu.cpuType;
+    menuoptions[MENU_DOUBLE_BUFFER].value = &menu.doublebuf;
+    menuoptions[MENU_ASPECT].value = &menu.aspect;
+    menuoptions[MENU_RESOLUTION].value = &menu.fullresolution;
+    menuoptions[MENU_SCALER].value = &menu.scaler;
+    menuoptions[MENU_VMOUSE_CONTROL].value = &menu.vmouse;
+    menuoptions[MENU_VMOUSE_BUTTONS].value = &menu.vmouse_buttons;
+    menuoptions[MENU_VMOUSE_SWAP_BUTTONS].value = &menu.vmouse_swapped;
+    menuoptions[MENU_VMOUSE_SPEED].value = &menu.vmouse_speed;
     
 #if (C_DYNREC)
     dynamic_available = true;
@@ -277,6 +297,8 @@ void MENU_Toggle()
         menu.doublebuf = GFX_IsDoubleBuffering();
 	menu.aspect = render.aspect;
 	menu.vmouse_swapped = VMOUSE_ButtonsSwapped();
+	
+	gfxPrimitivesSetFont(NULL, 8, 8);
     }
     
     for(int i=0; i<1024; i++) keystates[i] = false;
@@ -596,7 +618,8 @@ void MENU_BlitDoubledSurface(SDL_Surface *source, int left, int top, SDL_Surface
 
 void MENU_Draw(SDL_Surface *surface)
 {
-    int y = (surface->h - (MENU_ITEMS * 18)) / 2 + 12;
+//    int y = (surface->h - (MENU_ITEMS * 16)) / 2 + 12;
+    int y = 8;
     int color = 0xFF;
     SDL_Rect dest;
     
@@ -604,12 +627,11 @@ void MENU_Draw(SDL_Surface *surface)
  
     SDL_FillRect(menu.surface, NULL, SDL_MapRGB(menu.surface->format, 0x00, 0x00, 0xAA));
 
-    for(int i=0; i<MENU_ITEMS; i++)
+    for(int i=MENU_RESUME; i!=MENU_LAST; i++)
     {
         color = 0xFF;
 
-	menu_items_t selected = (menu_items_t)i;
-        
+	menu_items_t selected = static_cast<menu_items_t>(i);
         if(menu.selected == selected)
         {
             dest.x = 20;
@@ -622,31 +644,24 @@ void MENU_Draw(SDL_Surface *surface)
             SDL_FillRect(menu.surface, &dest, SDL_MapRGB(menu.surface->format, 0xFF, 0xFF, 0xFF));
         }
         
-        stringRGBA(menu.surface, MENU_COL_OPTION, y, menuoptions[i], color, color, color, 0xFF);
+        stringRGBA(menu.surface, MENU_COL_OPTION, y, menuoptions[i].text, color, color, color, 0xFF);
 
-	MENU_PRINT_VALUE(MENU_FRAMESKIP,menu.frameskip);
-	MENU_PRINT_VALUE(MENU_CYCLES,menu.cycles);
-	MENU_PRINT_VALUE(MENU_CPU_CORE,menu.core);
-	MENU_PRINT_VALUE(MENU_CPU_TYPE,menu.cpuType);
-	MENU_PRINT_VALUE(MENU_DOUBLE_BUFFER,menu.doublebuf ? "On" : "Off");
-	MENU_PRINT_VALUE(MENU_ASPECT,menu.aspect ? "On" : "Off");
-	MENU_PRINT_VALUE(MENU_RESOLUTION,menu.fullresolution);
-	MENU_PRINT_VALUE(MENU_SCALER,menu.scaler);
-	MENU_PRINT_VALUE(MENU_VMOUSE_CONTROL,menu.vmouse);
-	MENU_PRINT_VALUE(MENU_VMOUSE_BUTTONS,menu.vmouse_buttons);
-	MENU_PRINT_VALUE(MENU_VMOUSE_SPEED,menu.vmouse_speed);
-	MENU_PRINT_VALUE(MENU_VMOUSE_SWAP_BUTTONS,menu.vmouse_swapped ? "On" : "Off");
-	
-        y += 17;
+	if (menuoptions[i].print_value) {
+	    stringRGBA(menu.surface, MENU_COL_VALUE, y,
+		    menuoptions[i].on_off ? *(bool *)(menuoptions[i].value) ? "On" : "Off" : *(char **)(menuoptions[i].value),
+		    color, color, color, 0xFF);
+	}
+        y += 16;
     }
 
-    if(surface->h <= menu.surface->h) SDL_BlitSurface(menu.surface, NULL, surface, NULL);
-    else MENU_BlitDoubledSurface(menu.surface, 0, 0, surface);
+    if(surface->h <= menu.surface->h)
+	SDL_BlitSurface(menu.surface, NULL, surface, NULL);
+    else
+	MENU_BlitDoubledSurface(menu.surface, 0, 0, surface);
 }
 
 void MENU_CleanScreen(SDL_Surface *surface)
 {
     SDL_FillRect(surface, NULL, 0);
-    menu_last = false;
 }
 
