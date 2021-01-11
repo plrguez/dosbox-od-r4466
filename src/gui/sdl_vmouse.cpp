@@ -80,7 +80,7 @@ void VMOUSE_Init(int bpp)
     vmouse.accely = 0.0;
     vmouse.prev_accelx = 0.0;
     vmouse.prev_accely = 0.0;
-    vmouse.speed = 2.0;
+    vmouse.speed = 1.0;
     
     vmouse.left = false;
     vmouse.right = false;

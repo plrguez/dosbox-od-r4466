@@ -3106,8 +3106,8 @@ int GFX_GetCurrentScaleSize( void ) {
 	return sdl.surface->w / 320;
 }
 
-void GFX_GetMouseDetails(SDL_Rect *clip, int *xsensivity, int *ysensivity) {
+void GFX_GetMouseDetails(SDL_Rect *clip, int *xsensitivity, int *ysensitivity) {
     *clip = sdl.clip;
-    *xsensivity = sdl.mouse.xsensitivity;
-    *ysensivity = sdl.mouse.ysensitivity;
+    *xsensitivity = sdl.mouse.xsensitivity;
+    *ysensitivity = sdl.mouse.ysensitivity;
 }

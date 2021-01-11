@@ -24,6 +24,12 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <assert.h>
+#include <iostream>
+#include <fstream>
+/* To manage mouse in mapper screen without activate system mouse */
+#include <linux/uinput.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 
 #include "SDL.h"
@@ -1421,7 +1427,10 @@ public:
 		case BB_Add: 
 			mapper.addbind=true;
 			SetActiveBind(0);
-			change_action_text("Press a key/joystick button or move the joystick.",CLR_RED);
+			if (GFX_GetScaleSize() == 1)
+			    change_action_text("Press a key/joystick button or move joystick.",CLR_RED);
+			else
+			    change_action_text("Press a key/joystick button or move the joystick.",CLR_RED);
 			break;
 		case BB_Del:
 			if (mapper.abindit!=mapper.aevent->bindlist.end())  {
@@ -1713,7 +1722,10 @@ static void SetActiveEvent(CEvent * event) {
 		bind_but.add->Enable(false);
 		SetActiveBind(0);
 	} else {
-		change_action_text("Select a different event or hit the Add/Del/Next buttons.",CLR_WHITE);
+		if (GFX_GetScaleSize() == 1)
+		    change_action_text("Select another event or hit Add/Del/Next btn",CLR_WHITE);
+		else
+		    change_action_text("Select a different event or hit the Add/Del/Next buttons.",CLR_WHITE);
 		mapper.abindit=event->bindlist.begin();
 		if (mapper.abindit!=event->bindlist.end()) {
 			SetActiveBind(*(mapper.abindit));
@@ -2112,7 +2124,7 @@ static void CreateLayout_320_240_1(void) {
 	bind_but.save=new CBindButton(150,226,50,12,"Save",BB_Save);
 	bind_but.exit=new CBindButton(200,226,50,12,"Exit",BB_Exit);
 
-	bind_but.change_screen=new CBindButton(250,226,50,12,">>>",BC_ChgScreen);
+	bind_but.change_screen=new CBindButton(250,226,50,12,"ChgScr",BC_ChgScreen);
 
 	bind_but.bind_title->Change("Bind Title");
 }
@@ -2471,8 +2483,136 @@ void MAPPER_CheckEvent(SDL_Event * event) {
 	}
 }
 
+#define VMOUSE_DEFAULT_DEVICE "/dev/input/event4";
+static int vmouse_fd = 0;
+
+static struct {
+    bool movement;
+    bool up, down, left, right;
+    bool lbutton, rbutton;
+    bool left_button;
+    bool right_button;
+    double accelx, accely;
+} vmouse;
+#define MOUSE_SENSITIVITY 2
+
+static char *uinput_determine_event(void)
+{
+	std::string line, event_number, event, device = "/dev/input/event";
+	size_t pos, last;
+	bool mouse = false;
+
+	std::ifstream fdevices("/proc/bus/input/devices");
+	if (fdevices.is_open()) {
+	    while ( getline(fdevices,line) ) {
+		if (!mouse && line.find("OpenDingux mouse daemon") == std::string::npos) continue;
+		if (!mouse) mouse = true;
+		if (line.substr(0,2) != "H:") continue;
+
+		pos = line.find("event");
+		if (pos!=std::string::npos) {
+		    event = line.substr(pos+5);
+		    last = event.find(" ");
+		    if (last!=std::string::npos)
+			event_number = event.substr(0,last);
+		    else
+			event_number = event;
+		    device+=event_number;
+		}
+		break;
+	    }
+	    fdevices.close();
+	    if (event_number.length()==0) {
+		device = VMOUSE_DEFAULT_DEVICE;
+	    }
+	} else {
+	    device = VMOUSE_DEFAULT_DEVICE;
+	}
+
+	char * cstr_device = new char [device.length()+1];
+	strcpy(cstr_device, device.c_str());
+	return cstr_device;
+}
+
+static size_t emit_uinput_code(int fd, int type, int code, int val)
+{
+	struct input_event ie;
+
+	if (fd<=0) return -1;
+
+	ie.type = type;
+	ie.code = code;
+	ie.value = val;
+	/* timestamp values below are ignored */
+	ie.time.tv_sec = 0;
+	ie.time.tv_usec = 0;
+
+	return write(fd, &ie, sizeof(ie));
+}
+
+static void uinput_open(void) {
+	char *vmouse_event_file = uinput_determine_event();
+	vmouse_fd = open(vmouse_event_file, O_WRONLY);
+	free(vmouse_event_file);
+}
+
+static void uinput_close(void) {
+	if (vmouse_fd>0) close(vmouse_fd);
+}
+
+static void MAPPER_vmouse(void)
+{
+    int value;
+	if (vmouse.lbutton) {
+	    if ( vmouse.left_button ) {
+		emit_uinput_code(vmouse_fd,EV_KEY,BTN_LEFT,1);
+		emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+	    } else {
+		emit_uinput_code(vmouse_fd,EV_KEY,BTN_LEFT,0);
+		emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+	    }
+	}
+
+	if (vmouse.rbutton) {
+	    if ( vmouse.right_button ) {
+		emit_uinput_code(vmouse_fd,EV_KEY,BTN_RIGHT,1);
+		emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+	    } else {
+		emit_uinput_code(vmouse_fd,EV_KEY,BTN_RIGHT,0);
+		emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+	    }
+	}
+
+	if (vmouse.movement || vmouse.left || vmouse.right || vmouse.up || vmouse.down) {
+	    if (vmouse.left == vmouse.right)
+		value = 0;
+	    else if (vmouse.left)
+		value = -MOUSE_SENSITIVITY*vmouse.accelx;
+	    else if (vmouse.right)
+		value = MOUSE_SENSITIVITY*vmouse.accelx;
+
+	    emit_uinput_code(vmouse_fd,EV_REL,REL_X, value);
+	    emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+
+	    if (vmouse.up == vmouse.down)
+		value = 0;
+	    else if (vmouse.up)
+		value = -MOUSE_SENSITIVITY*vmouse.accely;
+	    else if (vmouse.down)
+		value = MOUSE_SENSITIVITY*vmouse.accely;
+
+	    emit_uinput_code(vmouse_fd,EV_REL,REL_Y, value);
+	    emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+	}
+
+	if (!vmouse.movement) SDL_Delay(10);
+}
+
 void BIND_MappingEvents(void) {
 	SDL_Event event;
+	vmouse.movement = false;
+	vmouse.lbutton = false;
+	vmouse.rbutton = false;
 	while (SDL_PollEvent(&event)) {
 		switch (event.type) {
 		case SDL_MOUSEBUTTONUP:
@@ -2487,16 +2627,96 @@ void BIND_MappingEvents(void) {
 			mapper.exit=true;
 			break;
 		default:
-			if (mapper.addbind) for (CBindGroup_it it=bindgroups.begin();it!=bindgroups.end();it++) {
+			if (mapper.addbind) {
+			    for (CBindGroup_it it=bindgroups.begin();it!=bindgroups.end();it++) {
 				CBind * newbind=(*it)->CreateEventBind(&event);
 				if (!newbind) continue;
 				mapper.aevent->AddBind(newbind);
 				SetActiveEvent(mapper.aevent);
 				mapper.addbind=false;
 				break;
-			}
+			    }
+			} else if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
+			    /* Check the press */
+			    switch (event.key.keysym.sym) {
+				case SDLK_LCTRL:
+				    vmouse.left_button = (event.type == SDL_KEYDOWN ? true : false);
+				    vmouse.lbutton = true;
+				    break;
+				case SDLK_LALT:
+				    vmouse.right_button = (event.type == SDL_KEYDOWN ? true : false);
+				    vmouse.rbutton = true;
+				    break;
+				case SDLK_LEFT:
+				    vmouse.left = (event.type == SDL_KEYDOWN ? true : false);
+				    vmouse.movement = true;
+				    vmouse.accelx = 1.0;
+				    break;
+				case SDLK_RIGHT:
+				    vmouse.right = (event.type == SDL_KEYDOWN ? true : false);
+				    vmouse.movement = true;
+				    vmouse.accelx = 1.0;
+				    break;
+				case SDLK_UP:
+				    vmouse.up = (event.type == SDL_KEYDOWN ? true : false);
+				    vmouse.movement = true;
+				    vmouse.accely = 1.0;
+				    break;
+				case SDLK_DOWN:
+				    vmouse.down = (event.type == SDL_KEYDOWN ? true : false);
+				    vmouse.movement = true;
+				    vmouse.accely = 1.0;
+				    break;
+				case SDLK_BACKSPACE:
+				case SDLK_TAB:
+				    if (event.type == SDL_KEYDOWN && GFX_GetScaleSize() == 1) {
+					mapper.change_screen = true;
+					mapper.redraw = true;
+				    }
+				    break;
+				default:
+				    break;
+			    }
+			} else if (event.type == SDL_JOYAXISMOTION && event.jaxis.which == 0) {
+                            switch (event.jaxis.axis) {
+				case 0:
+				    if (event.jaxis.value < 0) {
+					vmouse.left = true;
+					vmouse.right = false;
+				    } else if (event.jaxis.value > 0) {
+					vmouse.left = false;
+					vmouse.right = true;
+				    } else {
+					vmouse.left = vmouse.right = false;
+				    }
+
+				    if (vmouse.left || vmouse.right)
+				      vmouse.movement = true;
+				      vmouse.accelx = abs( (float)(event.jaxis.value/32768.0) );
+				    break;
+				case 1:
+				    if (event.jaxis.value < 0) {
+					vmouse.down = false;
+					vmouse.up = true;
+				    } else if (event.jaxis.value > 0) {
+					vmouse.down = true;
+					vmouse.up = false;
+				    } else {
+					vmouse.down = vmouse.up = false;
+				    }
+
+				    if (vmouse.down || vmouse.up)
+				      vmouse.movement = true;
+				    vmouse.accely = abs( (float)(event.jaxis.value/32768.0) );
+				    break;
+                                default:
+                                    break;
+                            }
+                        }
 		}
 	}
+
+	MAPPER_vmouse();
 }
 
 static void InitializeJoysticks(void) {
@@ -2638,7 +2858,7 @@ void MAPPER_RunInternal() {
 		mousetoggle=true;
 		GFX_CaptureMouse();
 	}
-
+	uinput_open();
 	/* Be sure that there is no update in progress */
 	GFX_EndUpdate( 0 );
 	if (GFX_GetScaleSize() > 1)
@@ -2688,6 +2908,7 @@ void MAPPER_RunInternal() {
 #endif
 	SDL_FreeSurface(mapper.surface);
 	mapper.surface=0;
+	uinput_close();
 	if(mousetoggle) GFX_CaptureMouse();
 	SDL_ShowCursor(cursor);
 	GFX_ResetScreen();
