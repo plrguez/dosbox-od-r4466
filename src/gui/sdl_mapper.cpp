@@ -2861,10 +2861,9 @@ void MAPPER_RunInternal() {
 	uinput_open();
 	/* Be sure that there is no update in progress */
 	GFX_EndUpdate( 0 );
-	if (GFX_GetScaleSize() > 1)
-	    mapper.surface=SDL_SetVideoMode_Wrap(640,480,8,0);
-	else
-	    mapper.surface=SDL_SetVideoMode_Wrap(320,240,8,0);
+	int width, height;
+	GFX_GetCurrentSize( width, height );
+	mapper.surface=SDL_SetVideoMode_Wrap(width,height,8,0);
 	if (mapper.surface == NULL) E_Exit("Could not initialize video mode for mapper: %s",SDL_GetError());
 
 	/* Set some palette entries */

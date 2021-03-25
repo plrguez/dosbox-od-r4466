@@ -77,6 +77,7 @@ bool GFX_IsDoubleBuffering(void);
 void GFX_SwitchDoubleBuffering(void);
 void GFX_LosingFocus(void);
 void GFX_GetSupportedSize(int &width, int &height);
+void GFX_GetCurrentSize(int &width, int &height);
  int GFX_GetScaleSize( void );
  int GFX_GetCurrentScaleSize( void );
 

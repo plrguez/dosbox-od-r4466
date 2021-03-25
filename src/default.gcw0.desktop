@@ -8,3 +8,4 @@ MimeType=application/x-dosexec;text/x-msdos-batch;
 StartupNotify=true
 Icon=dosbox
 Categories=emulators;
+X-OD-NeedsDownscaling=true

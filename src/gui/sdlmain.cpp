@@ -255,7 +255,7 @@ struct SDL_Block {
 			Bit16u width, height;
 		} fullwrap;
 		struct {
-			Bit16u width, height;
+			Bit16u width, height, currentWidth, currentHeight;
 		} supported;
 		Bit8u bpp;
 		bool fullscreen;
@@ -2203,8 +2203,21 @@ static void GUI_StartUp(Section * sec) {
                 SDL_Rect **modes;
                 /* Get available fullscreen/hw modes */
                 modes = SDL_ListModes(NULL, SDL_HWSURFACE);
-		sdl.desktop.supported.width = modes[0]->w;
-		sdl.desktop.supported.height = modes[0]->h;
+		sdl.desktop.supported.currentWidth = modes[0]->w;
+		sdl.desktop.supported.currentHeight = modes[0]->h;
+#if OLD_OD
+		sdl.desktop.supported.width = 320;
+		sdl.desktop.supported.height = 240;
+#elif OLD_OD_RG350M
+		sdl.desktop.supported.width = 640;
+		sdl.desktop.supported.height = 480;
+
+#else
+		sdl.desktop.supported.width = sdl.desktop.supported.currentWidth;
+		sdl.desktop.supported.height = sdl.desktop.supported.currentHeight;
+#endif
+		if ( sdl.desktop.supported.width == 320 && sdl.desktop.supported.height == 480 )
+		    sdl.desktop.supported.height = 240;
                 sdl.surface=SDL_SetVideoMode_Wrap(sdl.desktop.supported.width,sdl.desktop.supported.height,16,SDL_FULLSCREEN|SDL_HWSURFACE);
 		if (sdl.surface == NULL) E_Exit("Could not initialize video: %s",SDL_GetError());
 		sdl.desktop.bpp=sdl.surface->format->BitsPerPixel;
@@ -3100,6 +3113,12 @@ void GFX_GetSupportedSize(int &width, int &height) {
 
 int GFX_GetScaleSize( void ) {
 	return sdl.desktop.supported.width / 320;
+}
+
+void GFX_GetCurrentSize(int &width, int &height)
+{
+    width = sdl.desktop.supported.currentWidth;
+    height = sdl.desktop.supported.currentHeight;
 }
 
 int GFX_GetCurrentScaleSize( void ) {

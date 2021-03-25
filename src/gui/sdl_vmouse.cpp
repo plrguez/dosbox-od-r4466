@@ -429,11 +429,11 @@ void VMOUSE_BlitVMouse(SDL_Surface *surface)
     
     if(!vmouse.enabled) return;
 
+    GFX_GetMouseDetails(&clip, &xsensitivity, &ysensitivity);
+
     vmouse.x += vmouse.accelx;
     vmouse.y += vmouse.accely;
 
-    GFX_GetMouseDetails(&clip, &xsensitivity, &ysensitivity);
-    
     Mouse_CursorMoved((float)vmouse.accelx*xsensitivity/100.0f,
 		    (float)vmouse.accely*ysensitivity/100.0f,
 		    (float)(vmouse.x-clip.x)/(clip.w-1)*xsensitivity/100.0f,
