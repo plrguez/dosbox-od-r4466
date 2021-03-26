@@ -14,6 +14,7 @@ Makefile
 /install-sh
 /missing
 /autom4te.cache/
+.svn/
 *.o
 *.a
 *.opk
