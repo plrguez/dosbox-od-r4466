@@ -684,7 +684,7 @@ static void cache_block_closing(const Bit8u* block_start,Bitu block_size) {
 		__builtin_allegrex_cache(0x08, inval_start);
 	}
 #else
-	cacheflush(block_start, block_size, BCACHE);
+	cacheflush((void *)block_start, block_size, BCACHE);
 #endif
 }
 
