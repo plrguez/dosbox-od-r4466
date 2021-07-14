@@ -22,10 +22,10 @@ typedef struct vmouse_buttons {
 
 static vmouse_buttons_t vm_buttons[] = {
     { VM_BL_ABY,    3, SDLK_LCTRL,     SDLK_LALT,      SDLK_LSHIFT,    "l:A m:B r:Y",    "l:Y m:B r:A" },
-    { VM_BL_R2L3L2, 3, SDLK_BACKSPACE, SDLK_KP_DIVIDE, SDLK_TAB,       "l:R2 m:L3 r:L2", "l:L2 m:L3 r:R2" },
-    { VM_BL_R2R3L2, 3, SDLK_BACKSPACE, SDLK_KP_PERIOD, SDLK_TAB,       "l:R2 m:R3 r:L2", "l:L2 m:R3 r:R2" },
+    { VM_BL_R2L3L2, 3, SDLK_BACKSPACE, SDLK_KP_DIVIDE, SDLK_TAB,       "l:R1 m:L3 r:L1", "l:L1 m:L3 r:R1" },
+    { VM_BL_R2R3L2, 3, SDLK_BACKSPACE, SDLK_KP_PERIOD, SDLK_TAB,       "l:R1 m:R3 r:L1", "l:L1 m:R3 r:R1" },
     { VM_BL_AB,     2, SDLK_LCTRL,     SDLK_FIRST,     SDLK_LALT,      "l:A r:B",        "l:B r:A" },
-    { VM_BL_R2L2,   2, SDLK_BACKSPACE, SDLK_FIRST,     SDLK_TAB,       "l:R2 r:L2",      "l:L2 r:R2" },
+    { VM_BL_R2L2,   2, SDLK_BACKSPACE, SDLK_FIRST,     SDLK_TAB,       "l:R1 r:L1",      "l:L1 r:R1" },
     { VM_BL_R3L3,   2, SDLK_KP_PERIOD, SDLK_FIRST,     SDLK_KP_DIVIDE, "l:R3 r:L3",      "l:L3 r:R3" },
 };
 
