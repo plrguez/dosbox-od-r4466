@@ -325,6 +325,12 @@ case "$host_cpu" in
     c_targetcpu="arm"
     c_unalignedmemory=yes
     ;;
+   mipsel)
+    AC_DEFINE(C_TARGETCPU,MIPSEL)
+    AC_MSG_RESULT(MIPSEL)
+    c_targetcpu="mips"
+    c_unalignedmemory=yes
+    ;;
    *)
     AC_DEFINE(C_TARGETCPU,UNKNOWN)
     AC_MSG_RESULT(unknown)
@@ -393,13 +399,23 @@ dnl x86 only enable it if dynamic-x86 is disabled.
         AC_MSG_RESULT([no, using dynamic-x86])
     fi
   else 
-    if test x$c_targetcpu = xarm ; then
+    if test x$c_targetcpu = xarm -o x$c_targetcpu = xmips; then
       AC_DEFINE(C_DYNREC,1)
       AC_MSG_RESULT(yes)
     else 
       AC_MSG_RESULT(no)
     fi
   fi
+fi
+
+AH_TEMPLATE(C_MIPS32R2,[Define to 1 to enable MIPS32R2])
+AC_ARG_ENABLE(mips32r2,AC_HELP_STRING([--enable-mips32r2],[Enable mips32r2 support]),,enable_mips32r2=no)
+AC_MSG_CHECKING(whether mips32r2 will be enabled)
+if test x$c_targetcpu = xmips -a x$enable_mips32r2 = xyes ; then
+  AC_MSG_RESULT(yes)
+  AC_DEFINE(C_MIPS32R2,1)
+else
+  AC_MSG_RESULT(no)
 fi
 
 AH_TEMPLATE(C_FPU,[Define to 1 to enable floating point emulation])

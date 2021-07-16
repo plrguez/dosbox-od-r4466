@@ -164,7 +164,7 @@ static void gen_mov_word_to_reg(HostReg dest_reg,void* data,bool dword) {
 			cache_addw(0x9000+(temp1<<5)+dest_reg);
 			cache_addw(lohalf+1);		// lbu temp2, 1(temp1)
 			cache_addw(0x9000+(temp1<<5)+temp2);
-#ifdef PSP // i.e. MIPS32R2
+#if defined(PSP) || defined(C_MIPS32R2) // i.e. MIPS32R2
 			cache_addw(0x7a04);		// ins dest_reg, temp2, 8, 8
 			cache_addw(0x7c00+(temp2<<5)+dest_reg);
 #else
@@ -263,7 +263,7 @@ static void gen_mov_byte_from_reg_low(HostReg src_reg,void* dest) {
 // the register is zero-extended (sign==false) or sign-extended (sign==true)
 static void gen_extend_byte(bool sign,HostReg reg) {
 	if (sign) {
-#ifdef PSP // i.e. MIPS32R2
+#if defined(PSP) || defined(C_MIPS32R2) // i.e. MIPS32R2
 		cache_addw((reg<<11)+0x420);	// seb reg, reg
 		cache_addw(0x7c00+reg);
 #else
@@ -282,7 +282,7 @@ static void gen_extend_byte(bool sign,HostReg reg) {
 // the register is zero-extended (sign==false) or sign-extended (sign==true)
 static void gen_extend_word(bool sign,HostReg reg) {
 	if (sign) {
-#ifdef PSP // i.e. MIPS32R2
+#if defined(PSP) || defined(C_MIPS32R2) // i.e. MIPS32R2
 		cache_addw((reg<<11)+0x620);	// seh reg, reg
 		cache_addw(0x7c00+reg);
 #else
@@ -640,7 +640,7 @@ static void gen_fill_function_ptr(const Bit8u * pos,void* fct_ptr,Bitu flags_typ
 		case t_SARd:
 			cache_addd(0x00a41007,pos);					// srav $v0, $a0, $a1
 			break;
-#ifdef PSP // i.e. MIPS32R2
+#if defined(PSP) || defined(C_MIPS32R2) // i.e. MIPS32R2
 		case t_RORd:
 			cache_addd(0x00a41046,pos);					// rotr $v0, $a0, $a1
 			break;
