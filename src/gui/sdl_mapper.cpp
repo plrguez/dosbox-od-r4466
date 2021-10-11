@@ -2560,28 +2560,57 @@ static void uinput_close(void) {
 	if (vmouse_fd>0) close(vmouse_fd);
 }
 
-static void MAPPER_vmouse(void)
+static void MAPPER_vmouse_buttons(void)
 {
-    int value;
+        SDL_Event user_event;
+        static int x=0, y=0;
+        
+        memset(&user_event,0,sizeof(user_event));
+
+        user_event.type = SDL_NOEVENT;
+        
+        
 	if (vmouse.lbutton) {
+            vmouse.lbutton = false;
 	    if ( vmouse.left_button ) {
-		emit_uinput_code(vmouse_fd,EV_KEY,BTN_LEFT,1);
-		emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+//		emit_uinput_code(vmouse_fd,EV_KEY,BTN_LEFT,1);
+//		emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+                user_event.type = SDL_MOUSEBUTTONDOWN;
 	    } else {
-		emit_uinput_code(vmouse_fd,EV_KEY,BTN_LEFT,0);
-		emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+//		emit_uinput_code(vmouse_fd,EV_KEY,BTN_LEFT,0);
+//		emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+                user_event.type = SDL_MOUSEBUTTONUP;
 	    }
+            user_event.button.type = user_event.type;
+            user_event.button.button = SDL_BUTTON_LEFT;
 	}
 
 	if (vmouse.rbutton) {
+            vmouse.rbutton = false;
 	    if ( vmouse.right_button ) {
-		emit_uinput_code(vmouse_fd,EV_KEY,BTN_RIGHT,1);
-		emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+//		emit_uinput_code(vmouse_fd,EV_KEY,BTN_RIGHT,1);
+//		emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+                user_event.type = SDL_MOUSEBUTTONDOWN;
 	    } else {
-		emit_uinput_code(vmouse_fd,EV_KEY,BTN_RIGHT,0);
-		emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+//		emit_uinput_code(vmouse_fd,EV_KEY,BTN_RIGHT,0);
+//		emit_uinput_code(vmouse_fd,EV_SYN,SYN_REPORT,0);
+                user_event.type = SDL_MOUSEBUTTONUP;
 	    }
+            user_event.button.type = user_event.type;
+            user_event.button.button = SDL_BUTTON_RIGHT;
 	}
+        
+        if (user_event.type!=SDL_NOEVENT) {
+            SDL_GetMouseState(&x, &y);
+            user_event.button.x = x;
+            user_event.button.y = y;
+            SDL_PushEvent(&user_event);
+        }
+}
+
+static void MAPPER_vmouse(void)
+{
+        int value;
 
 	if (vmouse.movement || vmouse.left || vmouse.right || vmouse.up || vmouse.down) {
 	    if (vmouse.left == vmouse.right)
@@ -2714,6 +2743,7 @@ void BIND_MappingEvents(void) {
                             }
                         }
 		}
+                MAPPER_vmouse_buttons();
 	}
 
 	MAPPER_vmouse();
@@ -2859,6 +2889,7 @@ void MAPPER_RunInternal() {
 		GFX_CaptureMouse();
 	}
 	uinput_open();
+        SDL_EnableKeyRepeat(0,0);
 	/* Be sure that there is no update in progress */
 	GFX_EndUpdate( 0 );
 	int width, height;
@@ -2907,6 +2938,7 @@ void MAPPER_RunInternal() {
 #endif
 	SDL_FreeSurface(mapper.surface);
 	mapper.surface=0;
+        SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,SDL_DEFAULT_REPEAT_INTERVAL);
 	uinput_close();
 	if(mousetoggle) GFX_CaptureMouse();
 	SDL_ShowCursor(cursor);
