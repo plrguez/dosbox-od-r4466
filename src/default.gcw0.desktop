@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=DosBox-OD
+Name=DOSBox-OD
 Comment=DOS emulator of OpenDingux
 Exec=dosbox -exit %f
 Terminal=false
