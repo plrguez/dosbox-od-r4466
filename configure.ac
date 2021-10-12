@@ -418,6 +418,16 @@ else
   AC_MSG_RESULT(no)
 fi
 
+AH_TEMPLATE(C_MIPS32,[Define to 1 to enable MIPS32])
+AC_ARG_ENABLE(mips32r2,AC_HELP_STRING([--enable-mips32],[Enable mips32 support]),,enable_mips32=no)
+AC_MSG_CHECKING(whether mips32 will be enabled)
+if test x$c_targetcpu = xmips -a x$enable_mips32 = xyes ; then
+  AC_MSG_RESULT(yes)
+  AC_DEFINE(C_MIPS32,1)
+else
+  AC_MSG_RESULT(no)
+fi
+
 AH_TEMPLATE(C_FPU,[Define to 1 to enable floating point emulation])
 AC_ARG_ENABLE(fpu,AC_HELP_STRING([--disable-fpu],[Disable fpu support]),,enable_fpu=yes)
 AC_MSG_CHECKING(whether fpu emulation will be enabled) 

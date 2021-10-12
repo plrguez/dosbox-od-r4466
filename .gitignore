@@ -20,5 +20,9 @@ Makefile
 *.opk
 nbproject/
 /src/dosbox
+/src/dosbox_od
+/src/dosbox_lepus
+/src/dosbox*.sh
 /src/gdbinit
 /src/readme*.txt
+/src/*.desktop

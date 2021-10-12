@@ -2544,8 +2544,10 @@ static size_t emit_uinput_code(int fd, int type, int code, int val)
 	ie.code = code;
 	ie.value = val;
 	/* timestamp values below are ignored */
+#ifndef LEPUS
 	ie.time.tv_sec = 0;
 	ie.time.tv_usec = 0;
+#endif
 
 	return write(fd, &ie, sizeof(ie));
 }
