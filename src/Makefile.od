@@ -2,6 +2,9 @@ BASEDIR = ..
 
 ICON = dosbox.png
 README = ../README
+README_OD = ../README-OD.txt
+MANUAL = readme.txt
+EXECUTE_SHELL = dosbox.sh
 BUILD = dosbox
 TARGET = dosbox_od.opk
 DEFAULT_DESKTOP = default.gcw0.desktop
@@ -11,11 +14,12 @@ all: opk
 build:
 	cd $(BASEDIR) && $(MAKE)
 
-opk: build $(BUILD) $(ICON) $(README) $(DEFAULT_DESKTOP)
+opk: build $(BUILD) $(ICON) $(README) $(README_OD) $(DEFAULT_DESKTOP) $(EXECUTE_SHELL)
+	@cat $(README_OD) $(README) > $(MANUAL)
 	@mksquashfs \
 	$(DEFAULT_DESKTOP) \
-	dosbox.sh \
-	$(README) \
+	$(EXECUTE_SHELL) \
+        $(MANUAL) \
 	$(ICON) \
 	$(BUILD) \
 	$(TARGET) \
@@ -23,4 +27,4 @@ opk: build $(BUILD) $(ICON) $(README) $(DEFAULT_DESKTOP)
 
 clean:
 	cd $(BASEDIR) && $(MAKE) clean
-	-rm $(TARGET)
+	-rm $(TARGET) $(MANUAL)

@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=DOSBox-OD
-Comment=DOS emulator of OpenDingux
+Comment=DOS emulator for OpenDingux
 Exec=dosbox.sh %f
 Terminal=false
 Type=Application
@@ -9,3 +9,4 @@ StartupNotify=true
 Icon=dosbox
 Categories=emulators;
 X-OD-NeedsDownscaling=true
+X-OD-Manual=readme.txt
