@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=DOSBox-OD
 Comment=DOS emulator of OpenDingux
-Exec=dosbox -exit %f
+Exec=dosbox.sh %f
 Terminal=false
 Type=Application
 MimeType=application/x-dosexec;text/x-msdos-batch;

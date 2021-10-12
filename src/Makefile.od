@@ -14,7 +14,7 @@ build:
 opk: build $(BUILD) $(ICON) $(README) $(DEFAULT_DESKTOP)
 	@mksquashfs \
 	$(DEFAULT_DESKTOP) \
-	dosconf.gcw0.desktop \
+	dosbox.sh \
 	$(README) \
 	$(ICON) \
 	$(BUILD) \
