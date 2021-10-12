@@ -6,7 +6,7 @@ First time you start DOSBox it will be created.
 
 I do not recommend to chage this defaults and use an specific config file to launch your game and override values.
 
-To start DOSBox with a specific config file use the 'DOSBox-OD-Conf' launcher.
+To start DOSBox with a specific config file you can use the 'DOSBox-OD' launcher.
 
 In the config you can set an autoexec, mapper file and override other defaults.
 
@@ -184,3 +184,7 @@ How to compile for OD Beta
     export PATH=/opt/opendingux-toolchain/usr/bin:$PATH
     ./autogen.sh
     ./configure --host=mipsel-linux --with-sdl-prefix=/opt/opendingux-toolchain/mipsel-gcw0-linux-uclibc/sysroot/usr --enable-mips32r2 --disable-opengl --disable-alsa-midi --disable-dynamic-x86 --disable-fpu-x86 --enable-core-inline CXXFLAGS="-std=c++14 -g0 -O3 -G0 -mips32r2 -pipe -fno-builtin -fno-common -mno-shared -ffast-math -fomit-frame-pointer -fexpensive-optimizations -frename-registers -Wno-narrowing" LIBS="-lSDL_gfx -lSDL_image"
+    cd src
+    make -f Makefile.od opk
+
+    If there are no errors then a `dosbox_od.opk` file will be created in src directory.
